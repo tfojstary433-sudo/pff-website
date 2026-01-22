@@ -103,14 +103,14 @@ export function useMatchStats() {
   useEffect(() => {
     loadStats();
     fetchFromServer();
-    
+
     const handleStorageChange = () => {
       loadStats();
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchFromServer = async () => {
     try {

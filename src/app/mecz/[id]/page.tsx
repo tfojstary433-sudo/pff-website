@@ -729,7 +729,7 @@ export default function MatchDetail() {
                 {/* Score Summary (Goals) */}
                 <div className="grid grid-cols-2 gap-12 md:gap-32 mb-20 max-w-5xl mx-auto">
                   <div className="flex flex-col gap-3 items-end">
-                    {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === homeTeam.id) : apiData.events.goals.filter(g => isHomeTeam(g))).map((goal: any, idx: number) => (
+                    {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === homeTeam.id) : apiData?.events?.goals?.filter(g => isHomeTeam(g)) || []).map((goal: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/5 transition-all group cursor-default">
                         <div className="flex flex-col items-end">
                           <span className="text-white text-sm font-black uppercase tracking-wide group-hover:text-blue-400 transition-colors">{goal.playerName || goal.player}</span>
@@ -743,7 +743,7 @@ export default function MatchDetail() {
                   </div>
 
                   <div className="flex flex-col gap-3 items-start">
-                    {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === awayTeam.id) : apiData.events.goals.filter(g => isAwayTeam(g))).map((goal: any, idx: number) => (
+                    {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === awayTeam.id) : apiData?.events?.goals?.filter(g => isAwayTeam(g)) || []).map((goal: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/5 transition-all group cursor-default">
                         <div className="w-9 h-9 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
                           {goal.minute || '90'}'

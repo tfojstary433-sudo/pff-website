@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { newsArticles, sneakPeeks } from '@/lib/data';
-import { RecentResultsSidebar, SponsorsSidebar, LeagueTableSidebar } from './table-sidebars';
+import { RecentResultsSidebar, SponsorsSidebar } from './table-sidebars';
 
 interface Article {
   id: number;
