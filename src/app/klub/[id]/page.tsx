@@ -7,6 +7,7 @@ import { teams, newsArticles } from '@/lib/data';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface ClubPlayer {
    userId: string;
@@ -21,6 +22,7 @@ interface ClubPlayer {
 
 export default function KlubPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const team = teams.find(t => t.id === id);
   const [activeTab, setActiveTab] = useState<'o-klubie' | 'zespół' | 'statystyki'>('o-klubie');
@@ -291,7 +293,8 @@ export default function KlubPage() {
                   {players.map((player) => (
                     <div
                       key={player.userId}
-                      className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm hover:border-white/20 transition-all hover:scale-105 group"
+                      onClick={() => router.push(`/gracz/${player.username}`)}
+                      className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm hover:border-white/20 transition-all hover:scale-105 group cursor-pointer"
                     >
                       <div className="flex flex-col items-center text-center">
                         <div className="relative mb-4">
