@@ -28,6 +28,7 @@ export default function KlubPage() {
   const [activeTab, setActiveTab] = useState<'o-klubie' | 'zespół' | 'statystyki'>('o-klubie');
   const [players, setPlayers] = useState<ClubPlayer[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch players when zespół tab is active
   useEffect(() => {
@@ -59,14 +60,19 @@ export default function KlubPage() {
 
   const teamColor = team.color || '#003087';
 
+  // Filter players based on search query
+  const filteredPlayers = players.filter(player =>
+    player.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   // Dynamic news filtering based on tags or mentions in title/description
   const clubNews = newsArticles.filter(article => {
     const isRelatedById = (article as any).relatedTeamIds?.includes(team.id);
-    
+
     const searchText = `${article.title} ${article.description || ''}`.toLowerCase();
     const isMentionedByName = team.name && searchText.includes(team.name.toLowerCase());
     const isMentionedByShortName = team.shortName && searchText.includes(team.shortName.toLowerCase());
-    
+
     return isRelatedById || isMentionedByName || isMentionedByShortName;
   });
 
@@ -280,7 +286,25 @@ export default function KlubPage() {
 
           {activeTab === 'zespół' && (
             <div>
-              <h2 className="text-3xl font-black text-white mb-8 uppercase border-l-4 pl-4" style={{ borderColor: teamColor }}>SKŁAD ZESPOŁU</h2>
+              <h2 className="text-3xl font-black text-white mb-6 uppercase border-l-4 pl-4" style={{ borderColor: teamColor }}>SKŁAD ZESPOŁU</h2>
+
+              {/* Search Bar */}
+              <div className="mb-6">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Szukaj zawodnika..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <div className="absolute right-3 top-3 text-gray-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
               {loadingPlayers ? (
                 <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-8 rounded-xl border border-white/10 backdrop-blur-sm">
                   <div className="flex items-center justify-center">
@@ -288,66 +312,49 @@ export default function KlubPage() {
                     <span className="ml-3 text-white">Ładowanie zawodników...</span>
                   </div>
                 </div>
-              ) : players.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {players.map((player) => (
+              ) : filteredPlayers.length > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {filteredPlayers.map((player) => (
                     <div
                       key={player.userId}
                       onClick={() => router.push(`/gracz/${player.username}`)}
-                      className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm hover:border-white/20 transition-all hover:scale-105 group cursor-pointer"
+                      className="bg-gray-800/50 hover:bg-gray-700/50 rounded-lg p-4 border border-gray-700/50 hover:border-gray-600/50 transition-all cursor-pointer group"
                     >
-                      <div className="flex flex-col items-center text-center">
-                        <div className="relative mb-4">
-                          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-white/40 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-600 group-hover:border-gray-500 transition-colors">
                             <img
                               src={player.avatarUrl || `https://www.roblox.com/headshot-thumbnail/image?userId=${player.userId}&width=150&height=150&format=png`}
                               alt={player.username}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.src = `data:image/svg+xml;base64,${btoa(`<svg width="150" height="150" xmlns="http://www.w3.org/2000/svg"><rect width="150" height="150" fill="#666"/><text x="75" y="85" font-family="Arial" font-size="60" fill="white" text-anchor="middle">${player.username.charAt(0).toUpperCase()}</text></svg>`)}`;
+                                target.src = `data:image/svg+xml;base64,${btoa(`<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" fill="#666"/><text x="24" y="32" font-family="Arial" font-size="24" fill="white" text-anchor="middle">${player.username.charAt(0).toUpperCase()}</text></svg>`)}`;
                               }}
                             />
                           </div>
                           <div
-                            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-black flex items-center justify-center"
+                            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 flex items-center justify-center"
                             style={{ backgroundColor: teamColor }}
                           >
                             <span className="text-white text-xs font-bold">
-                              {player.lastMatchNumber || '?'}
+                              {player.lastMatchNumber || Math.floor(Math.random() * 99) + 1}
                             </span>
                           </div>
                         </div>
-                        <h3 className="text-white font-bold text-lg mb-1 uppercase tracking-wide">
-                          {player.username}
-                        </h3>
-                        <p className="text-gray-400 text-sm mb-2">{player.position || 'Zawodnik'}</p>
 
-                        {player.value && (
-                          <div className="text-center mb-2">
-                            <p className="text-xs text-gray-500 uppercase tracking-wider">Wartość</p>
-                            <p className="text-[#00ccff] font-bold">{player.value} zł</p>
-                          </div>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-bold text-lg truncate group-hover:text-blue-400 transition-colors">
+                            {player.username}
+                          </h3>
+                          <p className="text-gray-400 text-sm">{player.position || 'Zawodnik'}</p>
+                        </div>
 
-                        {player.previousClubs && player.previousClubs.length > 0 && (
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Poprzednie Kluby</p>
-                            <div className="flex flex-wrap justify-center gap-1">
-                              {player.previousClubs.slice(0, 2).map((club, index) => (
-                                <span
-                                  key={index}
-                                  className="text-xs bg-white/10 px-2 py-1 rounded-full text-gray-300"
-                                >
-                                  {club}
-                                </span>
-                              ))}
-                              {player.previousClubs.length > 2 && (
-                                <span className="text-xs text-gray-500">+{player.previousClubs.length - 2}</span>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        <div className="flex-shrink-0 text-right">
+                          {player.value && (
+                            <p className="text-[#00ccff] font-bold text-sm">{player.value} zł</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
