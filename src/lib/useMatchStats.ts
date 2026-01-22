@@ -19,7 +19,9 @@ function getTeamLogo(teamId: string): string {
     'WIS': 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg',
     'GRO': 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png',
     'CHO': 'https://i.ibb.co/TB027G07/czarnepff-1.png',
-    'ZAG': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png'
+    'ZAG': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png',
+    'LEC_0': 'https://ext.same-assets.com/1250577607/21331563.png', // Lechia Gdańsk
+    'LEC_1': 'https://i.ibb.co/TB027G07/czarnepff-1.png' // Chojniczanka (placeholder)
   };
   return teamLogos[teamId] || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
 }

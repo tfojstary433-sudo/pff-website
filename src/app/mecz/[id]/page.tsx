@@ -462,6 +462,7 @@ export default function MatchDetail() {
   }, [id]);
 
   const isMatchActive = apiData?.match.status === 'active' || apiData?.match.isActive;
+  const isMatchFinished = apiData?.match.status === 'finished' || apiData?.match.status === 'FINISHED' || (!isMatchActive && apiData);
 
   useEffect(() => {
     if (isMatchActive && !hasAutoSwitched.current) {
@@ -631,15 +632,34 @@ export default function MatchDetail() {
               <div className="max-w-6xl mx-auto">
                 {/* Header Section */}
                 <div className="flex justify-center mb-12">
-                  <div className="bg-white/5 border border-white/10 backdrop-blur-2xl rounded-full px-10 py-4 flex items-center gap-4 shadow-[0_0_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10">
+                  <div className={`bg-white/5 border backdrop-blur-2xl rounded-full px-10 py-4 flex items-center gap-4 shadow-[0_0_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 ${isMatchFinished ? 'border-green-500/20 bg-green-500/5' : 'border-white/10'}`}>
                     <div className="relative flex items-center justify-center">
-                      <div className="absolute w-4 h-4 rounded-full bg-red-500/30 animate-ping"></div>
-                      <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,1)] z-10"></div>
+                      {isMatchFinished ? (
+                        <>
+                          <div className="absolute w-4 h-4 rounded-full bg-green-500/30 animate-ping"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,1)] z-10"></div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute w-4 h-4 rounded-full bg-red-500/30 animate-ping"></div>
+                          <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,1)] z-10"></div>
+                        </>
+                      )}
                     </div>
                     <span className="text-sm font-black uppercase tracking-[0.4em] text-white flex items-center gap-3">
-                      <span className="text-red-500 animate-pulse-live">NA ŻYWO</span>
-                      <span className="w-px h-4 bg-white/20 mx-1"></span>
-                      {apiData?.match.timer || '00:00'} <span className="text-white/30 font-medium">|</span> {apiData?.match.period || 'MECZ TRWA'}
+                      {isMatchFinished ? (
+                        <>
+                          <span className="text-green-500">ZAKOŃCZONY</span>
+                          <span className="w-px h-4 bg-white/20 mx-1"></span>
+                          WYNIK KOŃCOWY
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-red-500 animate-pulse-live">NA ŻYWO</span>
+                          <span className="w-px h-4 bg-white/20 mx-1"></span>
+                          {apiData?.match.timer || '00:00'} <span className="text-white/30 font-medium">|</span> {apiData?.match.period || 'MECZ TRWA'}
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
