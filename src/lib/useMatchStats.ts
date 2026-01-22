@@ -63,64 +63,54 @@ export function useMatchStats() {
 
   const fetchFromServer = async () => {
     try {
-      // Automatycznie wykryj hosta lub użyj podanego przez użytkownika
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      
-      const [playersRes, tableRes, historyRes] = await Promise.all([
-        fetch(`${baseUrl}/api/players`),
-        fetch(`${baseUrl}/api/table`),
-        fetch(`${baseUrl}/api/history`)
+      // Load data from local JSON files instead of API endpoints
+      const [tableRes, playersRes] = await Promise.all([
+        fetch('/data/league_table.json'),
+        fetch('/data/player_statistics.json')
       ]);
-
-      if (playersRes.ok) {
-        const players = await playersRes.json();
-        if (Array.isArray(players)) {
-          setTopScorers(players);
-          localStorage.setItem('topScorers', JSON.stringify(players));
-        }
-      }
 
       if (tableRes.ok) {
         const table = await tableRes.json();
         if (Array.isArray(table)) {
           const formattedStandings = table.map((t: any) => ({
-            teamId: t.id,
+            teamId: t.team.id,
             played: t.played || 0,
             won: t.won || 0,
             drawn: t.drawn || 0,
             lost: t.lost || 0,
             goalsFor: t.goalsFor || 0,
             goalsAgainst: t.goalsAgainst || 0,
-            goalDifference: (t.goalsFor || 0) - (t.goalsAgainst || 0),
+            goalDifference: t.goalDifference || ((t.goalsFor || 0) - (t.goalsAgainst || 0)),
             points: t.points || 0
           }));
           setStandings(formattedStandings);
           localStorage.setItem('standings', JSON.stringify(formattedStandings));
+          console.log('✅ Loaded standings from league_table.json:', formattedStandings);
         }
       }
 
-      if (historyRes.ok) {
-        const history = await historyRes.json();
-        if (Array.isArray(history)) {
-          const matchesMap: Record<string, MatchResult> = {};
-          history.forEach((m: any) => {
-            matchesMap[m.matchId] = {
-              matchId: m.matchId,
-              homeScore: m.homeScore,
-              awayScore: m.awayScore,
-              homeTeamId: m.homeTeamId,
-              awayTeamId: m.awayTeamId,
-              scorers: m.scorers || [],
-              finished: m.status === 'FINISHED',
-              timestamp: m.date
-            };
-          });
-          setFinishedMatches(matchesMap);
-          localStorage.setItem('matchStats', JSON.stringify(matchesMap));
+      if (playersRes.ok) {
+        const players = await playersRes.json();
+        if (Array.isArray(players)) {
+          const formattedPlayers = players.map((p: any) => ({
+            playerId: p.playerId,
+            name: p.name,
+            teamId: p.teamId,
+            goals: p.goals || 0,
+            assists: p.assists || 0,
+            points: (p.goals || 0) + (p.assists || 0),
+            cleanSheets: p.cleanSheets || 0,
+            yellowCards: p.yellowCards || 0,
+            redCards: p.redCards || 0,
+            avatarUrl: p.avatarUrl
+          }));
+          setTopScorers(formattedPlayers);
+          localStorage.setItem('topScorers', JSON.stringify(formattedPlayers));
+          console.log('✅ Loaded players from player_statistics.json:', formattedPlayers);
         }
       }
     } catch (error) {
-      console.error('Error fetching from server:', error);
+      console.error('Error loading data from JSON files:', error);
     }
   };
 
