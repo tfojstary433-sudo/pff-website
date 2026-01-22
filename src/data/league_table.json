@@ -2,6 +2,23 @@
   {
     "position": 1,
     "team": {
+      "id": "ZAW",
+      "name": "Zawisza Bydgoszcz",
+      "shortName": "Zawisza",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 1,
+    "won": 1,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 1,
+    "goalsAgainst": 0,
+    "goalDifference": 1,
+    "points": 3
+  },
+  {
+    "position": 2,
+    "team": {
       "id": "ARK",
       "name": "Arka Gdynia",
       "shortName": "Arka",
@@ -17,7 +34,7 @@
     "points": 1
   },
   {
-    "position": 2,
+    "position": 3,
     "team": {
       "id": "LEG",
       "name": "Legia Warszawa",
@@ -223,18 +240,18 @@
   {
     "position": 14,
     "team": {
-      "id": "GRO",
-      "name": "Grom Nowy Staw",
-      "shortName": "Grom",
+      "id": "ZAG",
+      "name": "Zagłębie Lubin",
+      "shortName": "Zagłębie",
       "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
     },
-    "played": 0,
+    "played": 1,
     "won": 0,
     "drawn": 0,
-    "lost": 0,
+    "lost": 1,
     "goalsFor": 0,
-    "goalsAgainst": 0,
-    "goalDifference": 0,
+    "goalsAgainst": 1,
+    "goalDifference": -1,
     "points": 0
   }
 ]
