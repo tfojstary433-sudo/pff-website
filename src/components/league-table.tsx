@@ -12,7 +12,13 @@ export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
   const standings = realStandings.length > 0 ? realStandings.map((s, idx) => ({
     ...s,
     position: idx + 1,
-    team: teams.find(t => t.id === s.teamId)
+    team: s.team || teams.find(t => t.id === s.teamId) || {
+      id: s.teamId,
+      name: s.teamId, // Fallback name
+      shortName: s.teamId.substring(0, 3),
+      logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+      color: '#3b82f6'
+    }
   })) : defaultStandings;
   const content = (
     <>

@@ -42,6 +42,13 @@ export interface TeamStanding {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
+  team?: {
+    id: string;
+    name: string;
+    shortName: string;
+    logo: string;
+    color?: string;
+  };
 }
 
 export function useMatchStats() {
@@ -96,7 +103,14 @@ export function useMatchStats() {
               goalsFor,
               goalsAgainst,
               goalDifference, // Allow negative values for goal difference
-              points: Math.max(0, t.points || 0)
+              points: Math.max(0, t.points || 0),
+              team: {
+                id: teamId,
+                name: t.team?.name || teamId,
+                shortName: t.team?.shortName || teamId.substring(0, 3),
+                logo: t.team?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+                color: '#3b82f6'
+              }
             };
           });
           setStandings(formattedStandings);
