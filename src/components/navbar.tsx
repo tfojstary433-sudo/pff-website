@@ -3,16 +3,21 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { teams } from '@/lib/data';
 
 export function Navbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [balance, setBalance] = useState({ balance: 0, items: {} });
-  const [logoutCountdown, setLogoutCountdown] = useState<number | null>(null);
-  const pathname = usePathname();
+   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+   const [scrolled, setScrolled] = useState(false);
+   const [user, setUser] = useState<any>(null);
+   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+   const [balance, setBalance] = useState({ balance: 0, items: {} });
+   const [logoutCountdown, setLogoutCountdown] = useState<number | null>(null);
+   const [searchQuery, setSearchQuery] = useState('');
+   const [searchResults, setSearchResults] = useState<any[]>([]);
+   const [searchOpen, setSearchOpen] = useState(false);
+   const pathname = usePathname();
+   const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,6 +71,56 @@ export function Navbar() {
     }
   }, [logoutCountdown]);
 
+  // Search functionality
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+
+    const results: any[] = [];
+
+    // Search teams
+    const matchingTeams = teams.filter(team =>
+      team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      team.shortName?.toLowerCase().includes(searchQuery.toLowerCase())
+    ).slice(0, 3);
+
+    matchingTeams.forEach(team => {
+      results.push({
+        type: 'team',
+        id: team.id,
+        name: team.name,
+        logo: team.logo,
+        href: `/klub/${team.id}`
+      });
+    });
+
+    // Search players (mock for now)
+    const mockPlayers = [
+      { username: 'Player1', avatarUrl: 'https://www.roblox.com/headshot-thumbnail/image?userId=123&width=150&height=150&format=png' },
+      { username: 'Player2', avatarUrl: 'https://www.roblox.com/headshot-thumbnail/image?userId=456&width=150&height=150&format=png' },
+      { username: 'TestPlayer', avatarUrl: 'https://www.roblox.com/headshot-thumbnail/image?userId=789&width=150&height=150&format=png' }
+    ];
+
+    const matchingPlayers = mockPlayers.filter(player =>
+      player.username.toLowerCase().includes(searchQuery.toLowerCase())
+    ).slice(0, 3);
+
+    matchingPlayers.forEach(player => {
+      results.push({
+        type: 'player',
+        username: player.username,
+        avatarUrl: player.avatarUrl,
+        href: `/gracz/${player.username}`
+      });
+    });
+
+    setSearchResults(results);
+    setSearchOpen(results.length > 0);
+  }, [searchQuery]);
+
   const navLinks = [
     { href: '/', label: 'Aktualności' },
     { href: '/terminarz', label: 'Terminarz' },
@@ -100,6 +155,75 @@ export function Navbar() {
                 }`}
               />
             </Link>
+
+            {/* Search Bar */}
+            <div className="hidden md:block relative">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Szukaj klubów i zawodników..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-80 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-[#00ccff]/50 focus:ring-1 focus:ring-[#00ccff]/20"
+                />
+                <div className="absolute right-3 top-2.5 text-gray-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Search Results Dropdown */}
+              {searchOpen && searchResults.length > 0 && (
+                <div className="absolute top-full mt-2 w-full bg-black/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
+                  {searchResults.map((result, index) => (
+                    <Link
+                      key={index}
+                      href={result.href}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0"
+                    >
+                      {result.type === 'team' ? (
+                        <>
+                          <img
+                            src={result.logo}
+                            alt={result.name}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/placeholder-logo.png';
+                            }}
+                          />
+                          <div>
+                            <div className="text-white font-bold">{result.name}</div>
+                            <div className="text-gray-400 text-sm">Klub</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <img
+                            src={result.avatarUrl}
+                            alt={result.username}
+                            className="w-8 h-8 rounded-full border border-gray-600"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = `data:image/svg+xml;base64,${btoa(`<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" fill="#666"/><text x="16" y="22" font-family="Arial" font-size="16" fill="white" text-anchor="middle">${result.username.charAt(0).toUpperCase()}</text></svg>`)}`;
+                            }}
+                          />
+                          <div>
+                            <div className="text-white font-bold">{result.username}</div>
+                            <div className="text-gray-400 text-sm">Zawodnik</div>
+                          </div>
+                        </>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
