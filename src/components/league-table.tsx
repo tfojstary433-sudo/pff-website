@@ -3,10 +3,17 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { standings as defaultStandings } from '@/lib/data';
+import { standings as defaultStandings, teams } from '@/lib/data';
+import { useMatchStats } from '@/lib/useMatchStats';
 
 export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
-  const standings = defaultStandings;
+  const { standings: realStandings } = useMatchStats();
+  
+  const standings = realStandings.length > 0 ? realStandings.map((s, idx) => ({
+    ...s,
+    position: idx + 1,
+    team: teams.find(t => t.id === s.teamId)
+  })) : defaultStandings;
   const content = (
     <>
       <div className="max-w-4xl mx-auto space-y-3">

@@ -57,6 +57,17 @@ export interface Player {
   avatarUrl?: string;
 }
 
+export interface PlayerStat {
+  playerId: number;
+  name: string;
+  teamId: string;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  avatarUrl?: string;
+}
+
 export interface SneakPeak {
   id: number;
   title: string;

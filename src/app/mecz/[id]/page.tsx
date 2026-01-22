@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { matches, Match, teams, standings, friendlyMatchesData, findMatchById } from '@/lib/data';
@@ -396,37 +396,37 @@ export default function MatchDetail() {
   const homePoints = homeStanding?.points || 0;
   const awayPoints = awayStanding?.points || 0;
 
-  const isHomeTeam = (event: any) => {
+  const isHomeTeam = useCallback((event: any) => {
     if (!event || !event.team) return false;
     const teamStr = event.team.toString().trim().toLowerCase();
     const hName = homeTeam.name.toLowerCase().trim();
     const hShort = homeTeam.shortName.toLowerCase().trim();
     const apiTeamA = apiData?.match.teamA?.toLowerCase().trim();
 
-    return teamStr === 'home' || 
+    return teamStr === 'home' ||
            teamStr === 'gospodarz' ||
-           teamStr === apiTeamA || 
-           teamStr === hName || 
+           teamStr === apiTeamA ||
+           teamStr === hName ||
            teamStr === hShort ||
            hName.includes(teamStr) ||
            teamStr.includes(hName);
-  };
+  }, [homeTeam.name, homeTeam.shortName, apiData?.match.teamA]);
 
-  const isAwayTeam = (event: any) => {
+  const isAwayTeam = useCallback((event: any) => {
     if (!event || !event.team) return false;
     const teamStr = event.team.toString().trim().toLowerCase();
     const aName = awayTeam.name.toLowerCase().trim();
     const aShort = awayTeam.shortName.toLowerCase().trim();
     const apiTeamB = apiData?.match.teamB?.toLowerCase().trim();
 
-    return teamStr === 'away' || 
+    return teamStr === 'away' ||
            teamStr === 'gość' ||
-           teamStr === apiTeamB || 
-           teamStr === aName || 
+           teamStr === apiTeamB ||
+           teamStr === aName ||
            teamStr === aShort ||
            aName.includes(teamStr) ||
            teamStr.includes(aName);
-  };
+  }, [awayTeam.name, awayTeam.shortName, apiData?.match.teamB]);
 
   const calculatedScore = apiData?.events?.goals ? apiData.events.goals.reduce((acc, goal) => {
     if (isHomeTeam(goal)) acc.scoreA++;

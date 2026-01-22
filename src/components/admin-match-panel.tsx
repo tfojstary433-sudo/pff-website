@@ -15,6 +15,7 @@ export function AdminMatchPanel() {
   const [scorerTeam, setScorerTeam] = useState('ARK');
   const [scorerGoals, setScorerGoals] = useState(1);
   const [scorers, setScorers] = useState<Array<{playerName: string; playerId: number; teamId: string; goals: number}>>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const addScorer = () => {
     if (!scorerName.trim()) {
@@ -39,7 +40,7 @@ export function AdminMatchPanel() {
 
   const handleSubmit = async () => {
     console.log('🎯 [Admin Panel] Rozpoczęcie zapisywania meczu...');
-    
+
     const match = matches.find(m => m.id === matchId);
     if (!match) {
       alert('Mecz nie znaleziony!');
@@ -82,6 +83,33 @@ export function AdminMatchPanel() {
       window.location.reload();
     } else {
       alert('❌ Błąd zapisywania wyniku: ' + JSON.stringify(result.error));
+    }
+  };
+
+  const handleSyncStats = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/sync-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ competitionId: 'PL' }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('✅ Statystyki zsynchronizowane z API zewnętrznym!\n\nOdśwież stronę aby zobaczyć zmiany.');
+        window.location.reload();
+      } else {
+        alert('❌ Błąd synchronizacji: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('❌ Błąd synchronizacji statystyk');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -220,6 +248,20 @@ export function AdminMatchPanel() {
         >
           💾 Zapisz Wynik Meczu
         </button>
+
+        <div className="border-t border-blue-600/30 pt-4">
+          <h4 className="font-bold mb-3">🔄 Synchronizacja z API</h4>
+          <button
+            onClick={handleSyncStats}
+            disabled={isSyncing}
+            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg"
+          >
+            {isSyncing ? '⏳ Synchronizuję...' : '🌐 Synchronizuj Statystyki'}
+          </button>
+          <p className="text-xs text-green-400/70 mt-2">
+            Synchronizuje tabelę ligową i statystyki zawodników z zewnętrznego API
+          </p>
+        </div>
 
         <div className="text-xs text-blue-400/70 bg-blue-900/20 p-3 rounded-lg border border-blue-600/20">
           <p className="font-semibold mb-1">💡 Jak używać:</p>

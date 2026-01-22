@@ -1,15 +1,240 @@
 [
-  {"id": "ARK", "name": "Arka Gdynia", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "GRO", "name": "Grom Nowy Staw", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "LPO", "name": "Lech Poznań", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "LGD", "name": "Lechia Gdańsk", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "LEG", "name": "Legia Warszawa", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "MOT", "name": "Motor Lublin", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "OLI", "name": "Olimpia Elbląg", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "POG", "name": "Pogoń Szczecin", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "SOK", "name": "Sokół Ostróda", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "UNI", "name": "Unia Skierniewice", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "WIS", "name": "Wisła Kraków", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "ZAG", "name": "Zagłębie Lubin", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0},
-  {"id": "ZAW", "name": "Zawisza Bydgoszcz", "played": 0, "won": 0, "drawn": 0, "lost": 0, "goalsFor": 0, "goalsAgainst": 0, "goalDifference": 0, "points": 0}
+  {
+    "position": 1,
+    "team": {
+      "id": "ARK",
+      "name": "Arka Gdynia",
+      "shortName": "Arka",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 1,
+    "won": 0,
+    "drawn": 1,
+    "lost": 0,
+    "goalsFor": 1,
+    "goalsAgainst": 1,
+    "goalDifference": 0,
+    "points": 1
+  },
+  {
+    "position": 2,
+    "team": {
+      "id": "LEG",
+      "name": "Legia Warszawa",
+      "shortName": "Legia",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 1,
+    "won": 0,
+    "drawn": 1,
+    "lost": 0,
+    "goalsFor": 1,
+    "goalsAgainst": 1,
+    "goalDifference": 0,
+    "points": 1
+  },
+  {
+    "position": 3,
+    "team": {
+      "id": "LEC",
+      "name": "Lechia Gdańsk",
+      "shortName": "Lechia",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 4,
+    "team": {
+      "id": "CHO",
+      "name": "Chojniczanka Chojnice",
+      "shortName": "Chojniczanka",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 5,
+    "team": {
+      "id": "OLI",
+      "name": "Olimpia Elbląg",
+      "shortName": "Olimpia",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 6,
+    "team": {
+      "id": "POG",
+      "name": "Pogoń Szczecin",
+      "shortName": "Pogoń",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 7,
+    "team": {
+      "id": "UNI",
+      "name": "Unia Skierniewice",
+      "shortName": "Unia",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 8,
+    "team": {
+      "id": "MOT",
+      "name": "Motor Lublin",
+      "shortName": "Motor",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 9,
+    "team": {
+      "id": "SOK",
+      "name": "Sokół Olsztyn",
+      "shortName": "Sokół",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 10,
+    "team": {
+      "id": "ZAW",
+      "name": "Zawisza Bydgoszcz",
+      "shortName": "Zawisza",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 11,
+    "team": {
+      "id": "LEC",
+      "name": "Lech Poznań",
+      "shortName": "Lech",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 12,
+    "team": {
+      "id": "ZAG",
+      "name": "Zagłębie Lubin",
+      "shortName": "Zagłębie",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 13,
+    "team": {
+      "id": "WIS",
+      "name": "Wisła Kraków",
+      "shortName": "Wisła",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  },
+  {
+    "position": 14,
+    "team": {
+      "id": "GRO",
+      "name": "Grom Nowy Staw",
+      "shortName": "Grom",
+      "logo": "https://i.ibb.co/TB027G07/czarnepff-1.png"
+    },
+    "played": 0,
+    "won": 0,
+    "drawn": 0,
+    "lost": 0,
+    "goalsFor": 0,
+    "goalsAgainst": 0,
+    "goalDifference": 0,
+    "points": 0
+  }
 ]

@@ -5,14 +5,16 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 -- Konfiguracja
-local API_URL = "https://match-tracker-node--motorola4interi.replit.app/api/endmatch"
+local API_URL = "https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/endmatch"
 local MATCH_DATA = {
 	matchId = "",
 	homeTeamId = "",
 	awayTeamId = "",
 	homeScore = 0,
 	awayScore = 0,
-	scorers = {}
+	scorers = {},
+	extraStats = {}, -- Kartki i czyste konta
+	report = ""
 }
 
 -- Funkcja do pobrania avatara gracza
@@ -29,7 +31,9 @@ local function sendMatchResult()
 			awayTeamId = MATCH_DATA.awayTeamId,
 			homeScore = MATCH_DATA.homeScore,
 			awayScore = MATCH_DATA.awayScore,
-			scorers = MATCH_DATA.scorers
+			scorers = MATCH_DATA.scorers,
+			extraStats = MATCH_DATA.extraStats,
+			report = MATCH_DATA.report
 		})
 		
 		return HttpService:PostAsync(
@@ -46,10 +50,41 @@ local function sendMatchResult()
 	if success then
 		print("✅ Match result saved successfully!")
 		print("Response:", response)
+		-- Reset data after success
+		MATCH_DATA.scorers = {}
+		MATCH_DATA.extraStats = {}
+		MATCH_DATA.report = ""
 		return true
 	else
 		warn("❌ Failed to save match result:", response)
 		return false
+	end
+end
+
+-- Funkcja do dodania statystyk (kartki, czyste konta)
+local function addExtraStat(playerName, playerId, teamId, statType)
+	local found = false
+	for i, stat in ipairs(MATCH_DATA.extraStats) do
+		if stat.playerId == playerId then
+			if statType == "yellow" then stat.yellowCards = (stat.yellowCards or 0) + 1
+			elseif statType == "red" then stat.redCards = (stat.redCards or 0) + 1
+			elseif statType == "cs" then stat.cleanSheets = (stat.cleanSheets or 0) + 1
+			end
+			found = true
+			break
+		end
+	end
+	
+	if not found then
+		table.insert(MATCH_DATA.extraStats, {
+			playerName = playerName,
+			playerId = playerId,
+			teamId = teamId,
+			yellowCards = statType == "yellow" and 1 or 0,
+			redCards = statType == "red" and 1 or 0,
+			cleanSheets = statType == "cs" and 1 or 0,
+			avatarUrl = getPlayerAvatar(playerId)
+		})
 	end
 end
 
@@ -113,40 +148,54 @@ game.Players.PlayerAdded:Connect(function(player)
 		end
 		
 		-- Przykład: :addgoal PlayerName 123456 UNI 1
-		-- PlayerName = nazwa gracza, 123456 = Roblox UserId, UNI = teamId, 1 = liczba goli
 		if args[1]:lower() == ":addgoal" then
 			if #args < 5 then
 				player:Kick("Błąd: :addgoal [playerName] [playerId] [teamId] [goals]")
 				return
 			end
-			
-			local playerName = args[2]
-			local playerId = tonumber(args[3])
-			local teamId = args[4]
-			local goals = tonumber(args[5]) or 1
-			
+			local playerName, playerId, teamId, goals = args[2], tonumber(args[3]), args[4], tonumber(args[5]) or 1
 			addScorer(playerName, playerId, teamId, goals)
-			
-			print("⚽ Goal added for:", playerName, "Goals:", goals)
+			print("⚽ Goal added for:", playerName)
+		end
+
+		-- Przykład: :addcard yellow PlayerName 123456 UNI
+		if args[1]:lower() == ":addcard" then
+			if #args < 5 then return end
+			local cardType, playerName, playerId, teamId = args[2]:lower(), args[3], tonumber(args[4]), args[5]
+			addExtraStat(playerName, playerId, teamId, cardType)
+			print("🟨/🟥 Card added for:", playerName)
+		end
+
+		-- Przykład: :addcs PlayerName 123456 UNI
+		if args[1]:lower() == ":addcs" then
+			if #args < 4 then return end
+			local playerName, playerId, teamId = args[2], tonumber(args[3]), args[4]
+			addExtraStat(playerName, playerId, teamId, "cs")
+			print("🧤 Clean sheet added for:", playerName)
+		end
+
+		-- Przykład: :report Super mecz, obie druzyny walczyly do konca!
+		if args[1]:lower() == ":report" then
+			table.remove(args, 1)
+			MATCH_DATA.report = table.concat(args, " ")
+			print("📝 Report added")
 		end
 	end)
 end)
 
 -- Przykład użycia w grze:
 --[[
-	1. Podczas meczu, gdy ktoś strzeli gola:
-	   :addgoal MarcPelaz 123456789 UNI 1
-	   
-	2. Gdy mecz się kończy:
-	   :endmatch m1 UNI LGD 2 1
-	   
-	Dane zostaną wysłane do API i zapisane w bazie danych:
-	- Zaktualizuje tabelę ligową
-	- Doda strzelców do statystyk
-	- Zapisze wynik meczu
+	1. :addgoal MarcPelaz 123456789 UNI 1
+	2. :addcard yellow MarcPelaz 123456789 UNI
+	3. :addcs JanKowalski 987654321 UNI
+	4. :report Bardzo zacięte spotkanie!
+	5. :endmatch m1 UNI LGD 2 1
 ]]
 
 print("⚽ Match System Loaded!")
 print("Commands:")
 print("  :addgoal [playerName] [playerId] [teamId] [goals]")
+print("  :addcard [yellow/red] [playerName] [playerId] [teamId]")
+print("  :addcs [playerName] [playerId] [teamId]")
+print("  :report [text...]")
 print("  :endmatch [matchId] [homeTeamId] [awayTeamId] [homeScore] [awayScore]")

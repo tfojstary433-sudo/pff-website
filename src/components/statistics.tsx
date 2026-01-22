@@ -16,39 +16,52 @@ export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
   }, []);
 
   const mockPlayers = [
-    { playerId: 1, name: 'PAKO7U7LOL', teamId: 'POG', goals: 13, assists: 4, cleanSheets: 0 },
-    { playerId: 2, name: 'MichaelAmeyaw', teamId: 'ARK', goals: 5, assists: 8, cleanSheets: 0 },
-    { playerId: 3, name: 'KarolCzubak', teamId: 'LEG', goals: 10, assists: 2, cleanSheets: 0 },
-    { playerId: 4, name: 'MikaelIshak', teamId: 'LPO', goals: 10, assists: 3, cleanSheets: 0 },
-    { playerId: 5, name: 'SebastianBergier', teamId: 'WIS', goals: 9, assists: 1, cleanSheets: 0 },
-    { playerId: 6, name: 'JanGrzesik', teamId: 'ZAW', goals: 8, assists: 5, cleanSheets: 0 },
-    { playerId: 7, name: 'CamiloMena', teamId: 'ZAG', goals: 7, assists: 5, cleanSheets: 0 },
-    { playerId: 8, name: 'BartoszNowak', teamId: 'SOK', goals: 6, assists: 5, cleanSheets: 0 },
-    { playerId: 9, name: 'RafalWolski', teamId: 'LGD', goals: 5, assists: 5, cleanSheets: 0 },
-    { playerId: 10, name: 'JesusImaz', teamId: 'POG', goals: 9, assists: 3, cleanSheets: 0 },
-    { playerId: 11, name: 'KacperTobiasz', teamId: 'LEG', goals: 0, assists: 0, cleanSheets: 7 },
-    { playerId: 12, name: 'BartoszMrozek', teamId: 'LPO', goals: 0, assists: 0, cleanSheets: 6 },
-    { playerId: 13, name: 'ValentinCo jocaru', teamId: 'POG', goals: 0, assists: 0, cleanSheets: 5 },
-    { playerId: 14, name: 'KrzysztofB bicz', teamId: 'ZAG', goals: 0, assists: 0, cleanSheets: 5 },
-    { playerId: 15, name: 'MateuszKochalski', teamId: 'WIS', goals: 0, assists: 0, cleanSheets: 4 },
+    { playerId: 1, name: 'PAKO7U7LOL', teamId: 'POG', goals: 13, assists: 4, cleanSheets: 0, yellowCards: 2, redCards: 0 },
+    { playerId: 2, name: 'MichaelAmeyaw', teamId: 'ARK', goals: 5, assists: 8, cleanSheets: 0, yellowCards: 1, redCards: 0 },
+    { playerId: 3, name: 'KarolCzubak', teamId: 'LEG', goals: 10, assists: 2, cleanSheets: 0, yellowCards: 3, redCards: 0 },
+    { playerId: 4, name: 'MikaelIshak', teamId: 'LPO', goals: 10, assists: 3, cleanSheets: 0, yellowCards: 1, redCards: 0 },
+    { playerId: 5, name: 'SebastianBergier', teamId: 'WIS', goals: 9, assists: 1, cleanSheets: 0, yellowCards: 2, redCards: 1 },
+    { playerId: 6, name: 'JanGrzesik', teamId: 'ZAW', goals: 8, assists: 5, cleanSheets: 0, yellowCards: 1, redCards: 0 },
+    { playerId: 7, name: 'CamiloMena', teamId: 'ZAG', goals: 7, assists: 5, cleanSheets: 0, yellowCards: 4, redCards: 0 },
+    { playerId: 8, name: 'BartoszNowak', teamId: 'SOK', goals: 6, assists: 5, cleanSheets: 0, yellowCards: 2, redCards: 0 },
+    { playerId: 9, name: 'RafalWolski', teamId: 'LGD', goals: 5, assists: 5, cleanSheets: 0, yellowCards: 1, redCards: 0 },
+    { playerId: 10, name: 'JesusImaz', teamId: 'POG', goals: 9, assists: 3, cleanSheets: 0, yellowCards: 3, redCards: 0 },
+    { playerId: 11, name: 'KacperTobiasz', teamId: 'LEG', goals: 0, assists: 0, cleanSheets: 7, yellowCards: 0, redCards: 0 },
+    { playerId: 12, name: 'BartoszMrozek', teamId: 'LPO', goals: 0, assists: 0, cleanSheets: 6, yellowCards: 1, redCards: 0 },
+    { playerId: 13, name: 'ValentinCo jocaru', teamId: 'POG', goals: 0, assists: 0, cleanSheets: 5, yellowCards: 0, redCards: 0 },
+    { playerId: 14, name: 'KrzysztofB bicz', teamId: 'ZAG', goals: 0, assists: 0, cleanSheets: 5, yellowCards: 2, redCards: 0 },
+    { playerId: 15, name: 'MateuszKochalski', teamId: 'WIS', goals: 0, assists: 0, cleanSheets: 4, yellowCards: 1, redCards: 0 },
   ];
 
-  const activePlayers = mockPlayers;
+  const activePlayers = topScorers.length > 0 ? topScorers : mockPlayers;
 
   const topScorersSorted = [...activePlayers].sort((a, b) => b.goals - a.goals);
   const topAssistsSorted = [...activePlayers].sort((a, b) => (b.assists || 0) - (a.assists || 0));
-  const topPointsSorted = [...activePlayers].sort((a, b) => 
-    (b.goals + (b.assists || 0)) - (a.goals + (a.assists || 0))
+  const topPointsSorted = [...activePlayers].sort((a, b) =>
+    ((b.goals + (b.assists || 0))) - ((a.goals + (a.assists || 0)))
   );
-  const topKeepersSorted = [...activePlayers].filter(p => p.cleanSheets > 0).sort((a, b) => b.cleanSheets - a.cleanSheets);
+  const topKeepersSorted = [...activePlayers].filter(p => (p.cleanSheets || 0) > 0).sort((a, b) => (b.cleanSheets || 0) - (a.cleanSheets || 0));
+  const topYellowCardsSorted = [...activePlayers].filter(p => (p.yellowCards || 0) > 0).sort((a, b) => (b.yellowCards || 0) - (a.yellowCards || 0));
+  const topRedCardsSorted = [...activePlayers].filter(p => (p.redCards || 0) > 0).sort((a, b) => (b.redCards || 0) - (a.redCards || 0));
 
-  const StatCard = ({ title, players, metric, label, color = "blue" }: { title: string, players: any[], metric: string, label: string, color?: "blue" | "green" }) => {
+  const StatCard = ({ title, players, metric, label, color = "blue" }: { title: string, players: any[], metric: string, label: string, color?: "blue" | "green" | "yellow" | "red" }) => {
     const topPlayer = players[0];
     const otherPlayers = players.slice(1, isInTab ? 5 : 7);
     const getTeam = (teamId: string) => teams.find(t => t.id === teamId);
     
-    const themeColor = color === "green" ? "#10b981" : "#00ccff";
-    const bgGradient = color === "green" ? "from-[#10b981]/10" : "from-[#0033cc]/10";
+    let themeColor = "#00ccff";
+    let bgGradient = "from-[#0033cc]/10";
+
+    if (color === "green") {
+      themeColor = "#10b981";
+      bgGradient = "from-[#10b981]/10";
+    } else if (color === "yellow") {
+      themeColor = "#fbbf24";
+      bgGradient = "from-[#fbbf24]/10";
+    } else if (color === "red") {
+      themeColor = "#ef4444";
+      bgGradient = "from-[#ef4444]/10";
+    }
 
     return (
       <div className={`flex flex-col h-full rounded-2xl overflow-hidden glass border border-white/5 shadow-2xl ${isInTab ? 'border-none bg-transparent shadow-none' : ''}`}>
@@ -87,7 +100,7 @@ export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
                 <div className={`bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col items-center justify-center shadow-2xl group-hover:border-yellow-500/50 transition-colors ${isInTab ? 'px-4 py-2 min-w-[60px]' : 'px-6 py-3 min-w-[80px]'}`}>
                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{label}</span>
                   <span className={`${isInTab ? 'text-2xl' : 'text-3xl'} font-black text-white leading-none`}>
-                    {metric === 'points' ? (topPlayer.goals + (topPlayer.assists || 0)) : topPlayer[metric]}
+                    {metric === 'points' ? (topPlayer.points || (topPlayer.goals + (topPlayer.assists || 0))) : topPlayer[metric]}
                   </span>
                 </div>
                 
@@ -129,7 +142,7 @@ export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
         <div className="flex flex-col bg-[#0a0a0a]/50">
           {otherPlayers.map((player, idx) => {
             const team = getTeam(player.teamId);
-            const val = metric === 'points' ? (player.goals + (player.assists || 0)) : player[metric];
+            const val = metric === 'points' ? (player.points || (player.goals + (player.assists || 0))) : player[metric];
             const position = idx + 2;
             
             return (
@@ -206,7 +219,7 @@ export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
       )}
 
       <div className={`${isInTab ? 'max-w-full' : 'max-w-[1400px] mx-auto'} relative z-10`}>
-        <div className={`grid grid-cols-1 ${isInTab ? 'gap-4 px-0' : 'md:grid-cols-2 xl:grid-cols-4 gap-6 px-4'}`}>
+        <div className={`grid grid-cols-1 ${isInTab ? 'gap-4 px-0' : 'md:grid-cols-2 xl:grid-cols-3 gap-6 px-4'}`}>
           <StatCard 
             title="KLASYFIKACJA STRZELCÓW" 
             players={topScorersSorted} 
@@ -231,6 +244,20 @@ export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
             metric="cleanSheets" 
             label="CK"
             color="green"
+          />
+          <StatCard 
+            title="ŻÓŁTE KARTKI" 
+            players={topYellowCardsSorted} 
+            metric="yellowCards" 
+            label="ŻK"
+            color="yellow"
+          />
+          <StatCard 
+            title="CZERWONE KARTKI" 
+            players={topRedCardsSorted} 
+            metric="redCards" 
+            label="CK"
+            color="red"
           />
         </div>
       </div>

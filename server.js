@@ -49,6 +49,21 @@ app.get('/api/match/status', (req, res) => {
     res.json(matchData);
 });
 
+app.get('/api/table', (req, res) => {
+    const table = readData('league_table.json');
+    res.json(table);
+});
+
+app.get('/api/players', (req, res) => {
+    const players = readData('player_statistics.json');
+    res.json(players);
+});
+
+app.get('/api/history', (req, res) => {
+    const history = readData('matches_history.json');
+    res.json(history);
+});
+
 app.post('/api/match/start', (req, res) => {
     const { teamA, teamB } = req.body;
     
@@ -138,9 +153,11 @@ app.post('/api/endmatch', (req, res) => {
             saveData('league_table.json', leagueTable);
         }
 
-        // 4. Statystyki strzelców
+        // 4. Statystyki zawodników (Gole, Asysty, Kartki, Czyste konta)
+        const playerStats = readData('player_statistics.json');
+        
+        // Gole i asysty
         if (scorers && Array.isArray(scorers)) {
-            const playerStats = readData('player_statistics.json');
             scorers.forEach(s => {
                 let player = playerStats.find(p => p.playerId === s.playerId);
                 if (!player) {
@@ -150,6 +167,8 @@ app.post('/api/endmatch', (req, res) => {
                         teamId: s.teamId,
                         goals: 0,
                         assists: 0,
+                        points: 0,
+                        cleanSheets: 0,
                         yellowCards: 0,
                         redCards: 0,
                         avatarUrl: s.avatarUrl
@@ -158,19 +177,58 @@ app.post('/api/endmatch', (req, res) => {
                 }
                 player.goals += (s.goals || 0);
                 player.assists += (s.assists || 0);
+                player.points = player.goals + player.assists;
             });
-            saveData('player_statistics.json', playerStats);
         }
 
-        // 5. Składy (Lineups)
-        if (lineups) {
-            const lineupsData = readData('lineups.json');
-            lineupsData.push({
+        // Dodatkowe statystyki (kartki, czyste konta) przekazywane w body
+        const { extraStats } = req.body;
+        if (extraStats && Array.isArray(extraStats)) {
+            extraStats.forEach(s => {
+                let player = playerStats.find(p => p.playerId === s.playerId);
+                if (!player) {
+                    player = {
+                        playerId: s.playerId,
+                        name: s.playerName,
+                        teamId: s.teamId,
+                        goals: 0,
+                        assists: 0,
+                        points: 0,
+                        cleanSheets: 0,
+                        yellowCards: 0,
+                        redCards: 0,
+                        avatarUrl: s.avatarUrl
+                    };
+                    playerStats.push(player);
+                }
+                player.yellowCards += (s.yellowCards || 0);
+                player.redCards += (s.redCards || 0);
+                player.cleanSheets += (s.cleanSheets || 0);
+            });
+        }
+        saveData('player_statistics.json', playerStats);
+
+        // 5. Składy (Lineups) i Relacja
+        if (lineups || req.body.report) {
+            const matchDetails = readData('match_details.json');
+            matchDetails.push({
                 matchId,
-                lineups,
+                lineups: lineups || [],
+                report: req.body.report || '',
                 date: new Date().toISOString()
             });
-            saveData('lineups.json', lineupsData);
+            saveData('match_details.json', matchDetails);
+            
+            // Kompatybilność wsteczna dla lineups.json
+            if (lineups) {
+                const lineupsData = readData('lineups.json');
+                lineupsData.push({
+                    matchId,
+                    lineups,
+                    date: new Date().toISOString()
+                });
+                saveData('lineups.json', lineupsData);
+            }
         }
 
         // 6. Terminarz
