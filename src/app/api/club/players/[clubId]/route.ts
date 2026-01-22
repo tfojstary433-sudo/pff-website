@@ -111,10 +111,14 @@ export async function GET(
         const avatarUrl = await getRobloxAvatar(username);
 
         players.push({
-          userId,
-          username,
-          avatarUrl,
-          clubId
+           userId,
+           username,
+           avatarUrl,
+           clubId,
+           value: Math.floor(Math.random() * 50000) + 10000, // Przykładowa wartość
+           previousClubs: ['FC Example', 'City FC', 'United SC'].slice(0, Math.floor(Math.random() * 3) + 1), // Przykładowe kluby
+           lastMatchNumber: Math.floor(Math.random() * 99) + 1, // Przykładowy numer
+           position: ['Napastnik', 'Pomocnik', 'Obrońca', 'Bramkarz'][Math.floor(Math.random() * 4)] // Przykładowa pozycja
         });
       } catch (error) {
         console.error('Error processing player', userId, ':', error);
