@@ -34,15 +34,26 @@ interface LiveMatch {
 interface MatchCardProps {
   match: Match | any;
   isLive?: boolean;
+  isFinished?: boolean;
   liveData?: {
     scoreA: number;
     scoreB: number;
     timer: string;
     period: string;
   };
+  finishedData?: {
+    homeScore: number;
+    awayScore: number;
+    scorers: Array<{
+      playerName: string;
+      playerId: number;
+      teamId: string;
+      goals: number;
+    }>;
+  };
 }
 
-function MatchCard({ match, isLive = false, liveData }: MatchCardProps) {
+function MatchCard({ match, isLive = false, isFinished = false, liveData, finishedData }: MatchCardProps) {
   const formatTime = (dateString: string) => {
     if (!dateString) return '--:--';
     const date = new Date(dateString);
@@ -99,7 +110,14 @@ function MatchCard({ match, isLive = false, liveData }: MatchCardProps) {
             <div className="flex flex-col items-center gap-3 min-w-[120px] md:min-w-[160px] z-20">
               <div className="relative">
                 <div className="bg-[#0f0f0f] border border-white/10 px-8 py-4 md:px-10 md:py-5 rounded-[1.5rem] shadow-2xl transition-all duration-500 group-hover:border-white/20 relative">
-                  {isLive ? (
+                  {isFinished ? (
+                    <div className="flex flex-col items-center">
+                      <span className="text-3xl md:text-4xl font-black text-white tracking-tighter tabular-nums">
+                        {finishedData ? `${finishedData.homeScore} : ${finishedData.awayScore}` : `${match.homeScore || 0} : ${match.awayScore || 0}`}
+                      </span>
+                      <span className="text-[8px] font-black text-green-400 uppercase tracking-widest mt-1">ZAKOŃCZONY</span>
+                    </div>
+                  ) : isLive ? (
                     <div className="flex flex-col items-center">
                       <span className="text-3xl md:text-4xl font-black text-white tracking-tighter tabular-nums">
                         {liveData ? `${liveData.scoreA} : ${liveData.scoreB}` : `${match.homeScore} : ${match.awayScore}`}
@@ -246,7 +264,9 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
   const totalPages = Math.ceil(allRounds.length / roundsPerPage);
   const visibleRounds = allRounds.slice(currentPage * roundsPerPage, (currentPage + 1) * roundsPerPage);
   
-  const roundMatches = matches.filter(m => m.round === selectedRound && !finishedMatches[m.id]);
+  const roundMatches = matches.filter(m => m.round === selectedRound);
+  const upcomingMatches = roundMatches.filter(m => !finishedMatches[m.id]);
+  const finishedRoundMatches = roundMatches.filter(m => finishedMatches[m.id]);
 
   const handleNextPage = () => {
     if (currentPage < totalPages - 1) {
@@ -420,8 +440,47 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
           </div>
           
           <div className="space-y-4">
+            {/* Finished Matches */}
+            {finishedRoundMatches.length > 0 && (
+              <div className="mb-20 relative">
+                <div className="flex items-center gap-6 mb-12">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-green/20 to-green/30" />
+                  <div className="bg-[#111111]/80 backdrop-blur-xl px-10 py-3 rounded-full border border-green/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex items-center gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                    <span className="text-sm font-black text-green-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                      ZAKOŃCZONE MECZE
+                    </span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                  </div>
+                  <div className="h-px flex-1 bg-gradient-to-l from-transparent via-green/20 to-green/30" />
+                </div>
+
+                <div className="space-y-4">
+                  {finishedRoundMatches.map(match => {
+                    // Get match result from localStorage or use default
+                    const matchResults = JSON.parse(localStorage.getItem('matchStats') || '{}');
+                    const result = matchResults[match.id];
+
+                    return (
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        isFinished={true}
+                        finishedData={result ? {
+                          homeScore: result.homeScore,
+                          awayScore: result.awayScore,
+                          scorers: result.scorers || []
+                        } : undefined}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Matches */}
             {Object.entries(
-              roundMatches.reduce((acc, match) => {
+              upcomingMatches.reduce((acc, match) => {
                 const date = new Date(match.date);
                 const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
                 const dateLabel = `${days[date.getDay()]}, ${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
@@ -443,7 +502,7 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
                   </div>
                   <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/10 to-white/20" />
                 </div>
-                
+
                 <div className="space-y-4">
                   {matches.map(match => (
                     <MatchCard key={match.id} match={match} />

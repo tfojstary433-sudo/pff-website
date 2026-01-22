@@ -3,6 +3,47 @@
 import { useState, useEffect } from 'react';
 import { teams } from './data';
 
+// Helper functions for team logos and colors
+function getTeamLogo(teamId: string): string {
+  const teamLogos: Record<string, string> = {
+    'ARK': 'https://ext.same-assets.com/1250577607/451783410.png',
+    'LEG': 'https://ext.same-assets.com/1250577607/695801781.png',
+    'LEC': 'https://ext.same-assets.com/1250577607/3317158738.png',
+    'LGD': 'https://ext.same-assets.com/1250577607/21331563.png',
+    'POG': 'https://ext.same-assets.com/1250577607/3079565559.png',
+    'ZAW': 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png',
+    'OLI': 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png',
+    'UNI': 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png',
+    'MOT': 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png',
+    'SOK': 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png',
+    'WIS': 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg',
+    'GRO': 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png',
+    'CHO': 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+    'ZAG': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png'
+  };
+  return teamLogos[teamId] || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
+}
+
+function getTeamColor(teamId: string): string {
+  const teamColors: Record<string, string> = {
+    'ARK': '#FFD700',
+    'LEG': '#dc2626',
+    'LEC': '#1e40af',
+    'LGD': '#3b82f6',
+    'POG': '#1e3a8a',
+    'ZAW': '#f97316',
+    'OLI': '#00ccff',
+    'UNI': '#facc15',
+    'MOT': '#facc15',
+    'SOK': '#00ccff',
+    'WIS': '#dc2626',
+    'GRO': '#15803d',
+    'CHO': '#3b82f6',
+    'ZAG': '#f97316'
+  };
+  return teamColors[teamId] || '#3b82f6';
+}
+
 export interface PlayerStats {
   playerId: number;
   name: string;
@@ -108,8 +149,8 @@ export function useMatchStats() {
                 id: teamId,
                 name: t.team?.name || teamId,
                 shortName: t.team?.shortName || teamId.substring(0, 3),
-                logo: t.team?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png',
-                color: '#3b82f6'
+                logo: getTeamLogo(teamId),
+                color: getTeamColor(teamId)
               }
             };
           });
