@@ -20,44 +20,61 @@ const saveData = (filename: string, data: unknown) => {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 Starting external data synchronization...');
+    console.log('🔄 Starting external data synchronization from Replit...');
 
-    // Fetch data from external APIs
-    const [externalTable, externalStats] = await Promise.all([
-      fetchExternalLeagueTable(),
-      fetchExternalPlayerStats()
+    // Fetch data directly from Replit API
+    const [tableRes, playersRes] = await Promise.all([
+      fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/table'),
+      fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/stats')
     ]);
 
-    console.log(`📊 Sync results: ${externalTable.length} teams, ${externalStats.length} players`);
+    let externalTable: any[] = [];
+    let externalStats: any[] = [];
+
+    if (tableRes.ok) {
+      externalTable = await tableRes.json();
+      console.log(`📊 Fetched ${externalTable.length} teams from Replit API`);
+    }
+
+    if (playersRes.ok) {
+      externalStats = await playersRes.json();
+      console.log(`📊 Fetched ${externalStats.length} players from Replit API`);
+    }
 
     // Save league table
     if (externalTable.length > 0) {
       saveData('league_table.json', externalTable);
       console.log(`✅ Saved ${externalTable.length} teams to league table`);
-      console.log('Sample team:', externalTable[0]);
     } else {
-      console.log('⚠️ No teams data received');
+      console.log('⚠️ No teams data received from Replit');
     }
 
     // Save player statistics
     if (externalStats.length > 0) {
       saveData('player_statistics.json', externalStats);
       console.log(`✅ Saved ${externalStats.length} players to statistics`);
-      console.log('Sample player:', externalStats[0]);
     } else {
-      console.log('⚠️ No players data received');
+      console.log('⚠️ No players data received from Replit');
+    }
+
+    // Also update public files for direct access
+    if (externalTable.length > 0) {
+      saveData('../public/data/league_table.json', externalTable);
+    }
+    if (externalStats.length > 0) {
+      saveData('../public/data/player_statistics.json', externalStats);
     }
 
     return NextResponse.json({
       success: true,
-      message: 'External data synced successfully',
+      message: 'External data synced successfully from Replit',
       teamsCount: externalTable.length,
       playersCount: externalStats.length,
     });
   } catch (error) {
     console.error('❌ Error syncing external data:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to sync external data' },
+      { success: false, error: 'Failed to sync external data from Replit' },
       { status: 500 }
     );
   }

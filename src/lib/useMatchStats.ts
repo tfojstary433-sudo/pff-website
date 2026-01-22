@@ -63,10 +63,10 @@ export function useMatchStats() {
 
   const fetchFromServer = async () => {
     try {
-      // Load data from local JSON files instead of API endpoints
+      // Fetch data directly from Replit API
       const [tableRes, playersRes] = await Promise.all([
-        fetch('/data/league_table.json'),
-        fetch('/data/player_statistics.json')
+        fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/table'),
+        fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/stats')
       ]);
 
       if (tableRes.ok) {
@@ -74,43 +74,66 @@ export function useMatchStats() {
         if (Array.isArray(table)) {
           const formattedStandings = table.map((t: any) => ({
             teamId: t.team.id,
-            played: t.played || 0,
-            won: t.won || 0,
-            drawn: t.drawn || 0,
-            lost: t.lost || 0,
-            goalsFor: t.goalsFor || 0,
-            goalsAgainst: t.goalsAgainst || 0,
+            played: Math.max(0, t.played || 0), // Ensure non-negative
+            won: Math.max(0, t.won || 0),
+            drawn: Math.max(0, t.drawn || 0),
+            lost: Math.max(0, t.lost || 0),
+            goalsFor: Math.max(0, t.goalsFor || 0),
+            goalsAgainst: Math.max(0, t.goalsAgainst || 0),
             goalDifference: t.goalDifference || ((t.goalsFor || 0) - (t.goalsAgainst || 0)),
-            points: t.points || 0
+            points: Math.max(0, t.points || 0) // Ensure non-negative
           }));
           setStandings(formattedStandings);
           localStorage.setItem('standings', JSON.stringify(formattedStandings));
-          console.log('✅ Loaded standings from league_table.json:', formattedStandings);
+          console.log('✅ Loaded standings from Replit API:', formattedStandings);
         }
       }
 
       if (playersRes.ok) {
         const players = await playersRes.json();
-        if (Array.isArray(players)) {
+        if (Array.isArray(players) && players.length > 0) {
           const formattedPlayers = players.map((p: any) => ({
-            playerId: p.playerId,
-            name: p.name,
-            teamId: p.teamId,
-            goals: p.goals || 0,
-            assists: p.assists || 0,
-            points: (p.goals || 0) + (p.assists || 0),
-            cleanSheets: p.cleanSheets || 0,
-            yellowCards: p.yellowCards || 0,
-            redCards: p.redCards || 0,
-            avatarUrl: p.avatarUrl
+            playerId: p.playerId || p.id || Math.random(),
+            name: p.name || p.playerName || 'Unknown Player',
+            teamId: p.teamId || p.team?.id || 'unknown',
+            goals: Math.max(0, p.goals || 0),
+            assists: Math.max(0, p.assists || 0),
+            points: Math.max(0, (p.goals || 0) + (p.assists || 0)),
+            cleanSheets: Math.max(0, p.cleanSheets || 0),
+            yellowCards: Math.max(0, p.yellowCards || p.yellow_cards || 0),
+            redCards: Math.max(0, p.redCards || p.red_cards || 0),
+            avatarUrl: p.avatarUrl || p.avatar
           }));
           setTopScorers(formattedPlayers);
           localStorage.setItem('topScorers', JSON.stringify(formattedPlayers));
-          console.log('✅ Loaded players from player_statistics.json:', formattedPlayers);
+          console.log('✅ Loaded players from Replit API:', formattedPlayers);
+        } else {
+          // If no players, set empty array
+          setTopScorers([]);
+          localStorage.setItem('topScorers', JSON.stringify([]));
         }
       }
     } catch (error) {
-      console.error('Error loading data from JSON files:', error);
+      console.error('Error fetching from Replit API:', error);
+      // Fallback to local data if API fails
+      loadLocalData();
+    }
+  };
+
+  const loadLocalData = () => {
+    try {
+      const standingsData = localStorage.getItem('standings');
+      const playersData = localStorage.getItem('topScorers');
+
+      if (standingsData) {
+        setStandings(JSON.parse(standingsData));
+      }
+
+      if (playersData) {
+        setTopScorers(JSON.parse(playersData));
+      }
+    } catch (error) {
+      console.error('Error loading local data:', error);
     }
   };
 
