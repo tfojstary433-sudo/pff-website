@@ -434,35 +434,31 @@ export default function MatchDetail() {
     return acc;
   }, { scoreA: 0, scoreB: 0 }) : null;
 
+  // Check if match is finished based on localStorage
+  const [isMatchFinished, setIsMatchFinished] = useState(false);
+  const [isMatchActive, setIsMatchActive] = useState(false);
+
   useEffect(() => {
-    const fetchMatchData = async () => {
-      try {
-        const response = await fetch(`/api/matches/${id}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Mecz nie został odnaleziony');
-          } else {
-            setError(`Błąd serwera (${response.status})`);
-          }
-          throw new Error(`API error: ${response.status}`);
-        }
-        const data = await response.json();
-        setApiData(data);
-        setError(null);
-      } catch (error) {
-        console.error('Error fetching match data:', error);
-      } finally {
-        setLoading(false);
+    // Load finished matches from localStorage
+    const loadFinished = () => {
+      const stored = localStorage.getItem('finishedMatches');
+      if (stored) {
+        const finished = JSON.parse(stored);
+        setFinishedMatches(finished);
+        setIsMatchFinished(finished[id] || false);
+        setIsMatchActive(!(finished[id] || false));
+      } else {
+        setIsMatchFinished(false);
+        setIsMatchActive(true);
       }
     };
+    loadFinished();
 
-    fetchMatchData();
-    const interval = setInterval(fetchMatchData, 5000);
-    return () => clearInterval(interval);
+    // For now, don't fetch API data since it's not available
+    // Just use local match data
+    setLoading(false);
+    setError(null);
   }, [id]);
-
-  const isMatchActive = apiData?.match.status === 'active' || apiData?.match.isActive;
-  const isMatchFinished = apiData?.match.status === 'finished' || apiData?.match.status === 'FINISHED' || (!isMatchActive && apiData);
 
   useEffect(() => {
     if (isMatchActive && !hasAutoSwitched.current) {
@@ -471,6 +467,7 @@ export default function MatchDetail() {
     }
   }, [isMatchActive]);
 
+  const [finishedMatches, setFinishedMatches] = useState<Record<string, boolean>>({});
   const [showGoalAnimation, setShowGoalAnimation] = useState(false);
   const [goalInfo, setGoalInfo] = useState<{ team: string; player: string; logo?: string; side: 'home' | 'away' } | null>(null);
   const prevScoreRef = useRef({ scoreA: 0, scoreB: 0 });
