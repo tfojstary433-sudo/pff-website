@@ -12,7 +12,7 @@ function getTeamLogo(teamId: string): string {
     'ARK': 'https://ext.same-assets.com/1250577607/451783410.png',
     'LEG': 'https://ext.same-assets.com/1250577607/695801781.png',
     'LEC': 'https://ext.same-assets.com/1250577607/3317158738.png',
-    'LGD': 'https://upload.wikimedia.org/wikipedia/en/3/3a/Lechia_Gda%C5%84sk_logo.svg',
+    'LGD': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png',
     'POG': 'https://ext.same-assets.com/1250577607/3079565559.png',
     'ZAW': 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png',
     'OLI': 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png',
@@ -21,19 +21,50 @@ function getTeamLogo(teamId: string): string {
     'SOK': 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png',
     'WIS': 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg',
     'GRO': 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png',
-    'CHO': 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Chojniczanka_Chojnice_logo.png',
+    'CHO': 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png',
     'ZAG': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png',
-    'LEC_0': 'https://ext.same-assets.com/1250577607/21331563.png', // Lechia Gdańsk
-    'LEC_3': 'https://ext.same-assets.com/1250577607/21331563.png', // Lechia Gdańsk
-    'LEC_1': 'https://i.ibb.co/TB027G07/czarnepff-1.png' // Placeholder
+    'LEC_0': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', // Lechia Gdańsk
+
   };
-  return teamLogos[teamId] || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
+  return teamLogos[teamId] || '';
 }
 
-export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
+export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: boolean; compact?: boolean } = {}) {
   const { standings: realStandings } = useMatchStats();
+  const [localStandings, setLocalStandings] = useState<any[]>([]);
 
-  const standings = realStandings.length > 0 ? realStandings.map((s, idx) => ({
+  useEffect(() => {
+    const loadLocal = () => {
+      const data = localStorage.getItem('standings');
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed.length > 0) {
+          setLocalStandings(parsed.map((s: any, idx: number) => ({
+            ...s,
+            position: idx + 1,
+            team: s.team || teams.find(t => t.id === s.teamId) || {
+              id: s.teamId,
+              name: s.teamId,
+              shortName: s.teamId.substring(0, 3),
+              logo: getTeamLogo(s.teamId),
+              color: '#3b82f6'
+            }
+          })));
+        }
+      }
+    };
+
+    loadLocal();
+
+    const handleStorageChange = () => {
+      loadLocal();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const allStandings = localStandings.length > 0 ? localStandings : (realStandings.length > 0 ? realStandings.map((s, idx) => ({
     ...s,
     position: idx + 1,
     team: s.team || teams.find(t => t.id === s.teamId) || {
@@ -49,10 +80,12 @@ export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
       ...s.team,
       logo: getTeamLogo(s.team.id)
     }
-  }));
+  })));
+
+  const standings = allStandings;
   const content = (
     <>
-      <div className="max-w-4xl mx-auto space-y-3">
+      <div className={`max-w-4xl mx-auto ${compact ? 'space-y-2' : 'space-y-3'}`}>
         {standings.map((standing, index) => {
           let gradientColor = '#3b82f6';
           if (standing.position === 1) {
@@ -64,26 +97,27 @@ export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
           } else if (standing.position >= 11) {
             gradientColor = '#ef4444'; // Czerwony dla spadku
           }
-          
+
+
           return (
-            <Link 
-              href={standing.team ? `/klub/${standing.team.id}` : '#'} 
+            <Link
+              href={standing.team ? `/klub/${standing.team.id}` : '#'}
               key={`standing-${standing.position}`}
               className={`block ${standing.team ? 'cursor-pointer' : 'cursor-default'}`}
             >
-              <div 
-                className="relative overflow-hidden rounded-lg transition-all duration-300 hover:scale-[1.01] border border-white/5"
+              <div
+                className={`relative overflow-hidden rounded-lg transition-all duration-300 hover:scale-[1.01] border border-white/5 ${compact ? 'py-2' : 'py-4'}`}
                 style={{
-                  background: standing.team ? `linear-gradient(to right, 
-                    ${gradientColor}44 0%, 
+                  background: standing.team ? `linear-gradient(to right,
+                    ${gradientColor}44 0%,
                     ${gradientColor}22 20%,
                     #0a0a0a 60%,
                     #000000 100%
                   )` : '#0a0a0a'
                 }}
               >
-                <div className="relative z-10 px-5 py-4 flex items-center gap-4">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full font-black text-base shrink-0 ${
+                <div className={`relative z-10 ${compact ? 'px-3' : 'px-5'} flex items-center gap-4`}>
+                  <div className={`flex items-center justify-center ${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-full font-black ${compact ? 'text-sm' : 'text-base'} shrink-0 ${
                     standing.position === 1 ? 'bg-yellow-500 text-black' :
                     standing.position === 2 ? 'bg-gray-400 text-black' :
                     standing.position === 3 ? 'bg-orange-700 text-white' :
@@ -92,30 +126,30 @@ export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
                   }`}>
                     {standing.position}
                   </div>
-                  
+
                   {standing.team ? (
                     <>
                       <div className="relative shrink-0">
-                        <div 
+                        <div
                           className="absolute inset-0 blur-xl opacity-40"
                           style={{ backgroundColor: standing.team.color }}
                         />
                         <Image
                           src={standing.team.logo}
                           alt={standing.team.name}
-                          width={40}
-                          height={40}
+                          width={compact ? 32 : 40}
+                          height={compact ? 32 : 40}
                           className="relative z-10"
                         />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-black text-white text-xl uppercase tracking-tight truncate">
+                        <h3 className={`font-black text-white ${compact ? 'text-lg' : 'text-xl'} uppercase tracking-tight truncate`}>
                           {standing.team.name}
                         </h3>
                       </div>
-                      
-                      <div className="hidden md:flex items-center gap-4 text-xs">
+
+                      <div className={`${compact ? 'hidden' : 'hidden md:flex'} items-center gap-4 text-xs`}>
                         <div className="text-center">
                           <div className="text-gray-500 text-[10px] font-bold">M</div>
                           <div className="text-white font-bold">{standing.played}</div>
@@ -142,9 +176,9 @@ export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm border border-white/10 px-4 py-2 rounded-lg shrink-0">
-                        <span className="text-xl font-black text-white">
+
+                      <div className={`flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm border border-white/10 ${compact ? 'px-3 py-1' : 'px-4 py-2'} rounded-lg shrink-0`}>
+                        <span className={`${compact ? 'text-lg' : 'text-xl'} font-black text-white`}>
                           {standing.points}
                         </span>
                         <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">PKT</span>
@@ -159,7 +193,6 @@ export function LeagueTable({ isInTab = false }: { isInTab?: boolean } = {}) {
           );
         })}
       </div>
-
       <div className="mt-6 flex items-center justify-center gap-6 text-xs flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center font-black text-black text-sm">1</div>

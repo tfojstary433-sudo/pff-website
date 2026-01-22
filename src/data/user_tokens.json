@@ -1,6 +1,47 @@
 {
   "users": {
+    "1198260479706021961": {
+      "balance": 730,
+      "bonusBalance": 130,
+      "items": {}
+    }
   },
   "purchases": [
+    {
+      "userId": "1198260479706021961",
+      "type": "token_purchase",
+      "amount": {
+        "regular": 80,
+        "bonus": 20
+      },
+      "timestamp": "2026-01-22T13:55:52.418Z"
+    },
+    {
+      "userId": "1198260479706021961",
+      "type": "token_purchase",
+      "amount": {
+        "regular": 200,
+        "bonus": 100
+      },
+      "timestamp": "2026-01-22T13:56:58.525Z"
+    },
+    {
+      "userId": "1198260479706021961",
+      "type": "token_purchase",
+      "amount": {
+        "regular": 50,
+        "bonus": 10
+      },
+      "timestamp": "2026-01-22T13:57:02.342Z"
+    },
+    {
+      "userId": "1198260479706021961",
+      "type": "token_purchase",
+      "amount": {
+        "regular": 400,
+        "bonus": 0
+      },
+      "timestamp": "2026-01-22T13:57:09.658Z"
+    }
   ]
 }

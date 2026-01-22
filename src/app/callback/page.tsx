@@ -7,6 +7,7 @@ function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -19,9 +20,12 @@ function CallbackContent() {
             setError(data.error);
           } else {
             // Save user info to localStorage
-            localStorage.setItem('discord_user', JSON.stringify(data));
-            // Redirect to shop
-            router.push('/sklep');
+            const savedRobloxId = localStorage.getItem('roblox_id');
+            const userData = { ...data, robloxId: savedRobloxId || null };
+            localStorage.setItem('discord_user', JSON.stringify(userData));
+
+            // Start 5-second countdown before redirect
+            setCountdown(5);
           }
         })
         .catch((err) => {
@@ -32,6 +36,17 @@ function CallbackContent() {
       setError('Brak kodu autoryzacyjnego.');
     }
   }, [searchParams, router]);
+
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      router.push('/sklep');
+    }
+  }, [countdown, router]);
 
   if (error) {
     return (
@@ -55,8 +70,12 @@ function CallbackContent() {
       <div className="flex flex-col items-center gap-6">
         <div className="w-16 h-16 border-4 border-[#00ccff] border-t-transparent rounded-full animate-spin"></div>
         <div className="text-center">
-          <h1 className="text-2xl font-black uppercase tracking-widest">Autoryzacja...</h1>
-          <p className="text-white/40 font-medium">Proszę czekać, łączymy z Discordem</p>
+          <h1 className="text-2xl font-black uppercase tracking-widest">
+            {countdown !== null ? `Przekierowanie za ${countdown}s` : 'Autoryzacja...'}
+          </h1>
+          <p className="text-white/40 font-medium">
+            {countdown !== null ? 'Pomyślnie zalogowano!' : 'Proszę czekać, łączymy z Discordem'}
+          </p>
         </div>
       </div>
     </div>

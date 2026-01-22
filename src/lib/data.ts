@@ -97,7 +97,7 @@ export const teams: Team[] = [
     id: 'LGD', 
     name: 'Lechia Gdańsk', 
     shortName: 'Lechia', 
-    logo: 'https://ext.same-assets.com/1250577607/21331563.png',
+    logo: 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png',
     color: '#16a34a',
     founded: '14.12.2025',
     president: 'Nieznany',
@@ -269,7 +269,7 @@ export const teams: Team[] = [
     id: 'CHO',
     name: 'Chojniczanka Chojnice',
     shortName: 'Chojniczanka',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Chojniczanka_Chojnice_logo.png',
+    logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png',
     color: '#3b82f6',
     stadium: 'Stadion Miejski w Chojnicach'
   },

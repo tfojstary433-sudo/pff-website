@@ -2,6 +2,23 @@
   {
     "position": 1,
     "team": {
+      "id": "ZAG",
+      "name": "Zagłębie Lubin",
+      "shortName": "Zagłębie",
+      "logo": ""
+    },
+    "played": 5,
+    "won": 2,
+    "drawn": 0,
+    "lost": 3,
+    "goalsFor": 2,
+    "goalsAgainst": 3,
+    "goalDifference": -1,
+    "points": 6
+  },
+  {
+    "position": 2,
+    "team": {
       "id": "LEG",
       "name": "Legia Warszawa",
       "shortName": "Legia",
@@ -17,24 +34,24 @@
     "points": 4
   },
   {
-    "position": 2,
+    "position": 3,
     "team": {
       "id": "ARK",
       "name": "Arka Gdynia",
       "shortName": "Arka",
       "logo": ""
     },
-    "played": 3,
+    "played": 4,
     "won": 1,
     "drawn": 1,
-    "lost": 1,
+    "lost": 2,
     "goalsFor": 2,
-    "goalsAgainst": 2,
-    "goalDifference": 0,
+    "goalsAgainst": 3,
+    "goalDifference": -1,
     "points": 4
   },
   {
-    "position": 3,
+    "position": 4,
     "team": {
       "id": "LEC",
       "name": "Lech Poznań",
@@ -51,9 +68,9 @@
     "points": 3
   },
   {
-    "position": 4,
+    "position": 5,
     "team": {
-      "id": "LEC_3",
+      "id": "LEC_4",
       "name": "Lechia Gdańsk",
       "shortName": "Lechia",
       "logo": ""
@@ -68,7 +85,7 @@
     "points": 3
   },
   {
-    "position": 5,
+    "position": 6,
     "team": {
       "id": "ZAW",
       "name": "Zawisza Bydgoszcz",
@@ -82,23 +99,6 @@
     "goalsFor": 1,
     "goalsAgainst": 1,
     "goalDifference": 0,
-    "points": 3
-  },
-  {
-    "position": 6,
-    "team": {
-      "id": "ZAG",
-      "name": "Zagłębie Lubin",
-      "shortName": "Zagłębie",
-      "logo": ""
-    },
-    "played": 4,
-    "won": 1,
-    "drawn": 0,
-    "lost": 3,
-    "goalsFor": 1,
-    "goalsAgainst": 3,
-    "goalDifference": -2,
     "points": 3
   },
   {

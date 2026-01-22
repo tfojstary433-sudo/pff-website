@@ -452,69 +452,7 @@ export function ScheduleTableOverlay({
 
       {activeTab === 'tabela' && (
         <div className="bg-[#0a0a0a]/90 text-white max-h-[600px] overflow-y-auto scrollbar-hide">
-          <div className="bg-gradient-to-r from-[#1a1a1a] via-[#2a2a2a] to-[#1a1a1a] px-4 py-3 font-black text-[11px] tracking-widest text-center sticky top-0 z-10 border-b border-white/5 uppercase">
-            Tabela Ekstraklasy
-          </div>
-          <div className="divide-y divide-white/5">
-            {standings.slice(0, 11).map((standing) => (
-              <Link 
-                href={standing.team ? `/klub/${standing.team.id}` : '#'} 
-                key={`standing-${standing.position}`}
-                className={`block group ${standing.team ? 'cursor-pointer' : 'cursor-default'}`}
-              >
-                <div 
-                  className="relative px-4 py-4 transition-all hover:bg-white/5"
-                  style={{
-                    background: standing.team ? `linear-gradient(to right, 
-                      ${standing.team.color || '#000000'}11 0%, 
-                      transparent 40%
-                    )` : 'transparent'
-                  }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`flex items-center justify-center w-7 h-7 rounded-lg font-black text-[11px] shadow-lg ${
-                      standing.position === 1 ? 'bg-yellow-500 text-black' :
-                      standing.position >= 9 ? 'bg-red-500 text-white' :
-                      'bg-[#00ccff] text-white'
-                    }`}>
-                      {standing.position}
-                    </div>
-                    
-                    {standing.team ? (
-                      <>
-                        <div className="relative flex-shrink-0">
-                          <div 
-                            className="absolute inset-0 blur-md opacity-20"
-                            style={{ backgroundColor: standing.team.color }}
-                          />
-                          <Image
-                            src={standing.team.logo}
-                            alt={standing.team.name}
-                            width={28}
-                            height={28}
-                            className="relative z-10 drop-shadow-md"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="font-black text-white text-[11px] uppercase block truncate group-hover:text-[#00ccff] transition-colors">
-                            {standing.team.shortName}
-                          </span>
-                        </div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="font-black text-white text-sm tracking-tighter">
-                            {standing.goalsFor}:{standing.goalsAgainst}
-                          </span>
-                          <span className="text-[8px] text-gray-500 font-black uppercase">BRAMKI</span>
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-gray-600 text-xs font-bold">-</span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <LeagueTable isInTab={true} compact={true} />
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Simple in-memory cache
-const cache = new Map<string, { url: string; timestamp: number }>();
+const cache = new Map<string, { url: string; robloxId: string; timestamp: number }>();
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
 
 export async function GET(request: NextRequest) {
@@ -15,8 +15,9 @@ export async function GET(request: NextRequest) {
   // Check cache
   const cached = cache.get(username);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return NextResponse.json({ 
-      avatarUrl: cached.url 
+    return NextResponse.json({
+      avatarUrl: cached.url,
+      robloxId: cached.robloxId
     }, {
       headers: {
         'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400'
@@ -60,10 +61,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Update cache
-    cache.set(username, { url: avatarUrl, timestamp: Date.now() });
+    cache.set(username, { url: avatarUrl, robloxId: robloxId.toString(), timestamp: Date.now() });
 
-    return NextResponse.json({ 
-      userId: robloxId,
+    return NextResponse.json({
+      robloxId: robloxId.toString(),
       avatarUrl: avatarUrl
     }, {
       headers: {
