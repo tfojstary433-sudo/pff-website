@@ -4,6 +4,7 @@ import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import Link from 'next/link';
 import { teams } from '@/lib/data';
+import { useState, useEffect } from 'react';
 
 export default function KlubyPage() {
   const displayTeams = [
@@ -22,9 +23,33 @@ export default function KlubyPage() {
     'Olimpia Elbląg'
   ];
 
-  const filteredTeams = teams.filter(team => 
+  const filteredTeams = teams.filter(team =>
     displayTeams.includes(team.name)
   );
+
+  const [playerCounts, setPlayerCounts] = useState<{ [key: string]: number }>({});
+
+  useEffect(() => {
+    // Fetch player counts for all teams
+    const fetchPlayerCounts = async () => {
+      const counts: { [key: string]: number } = {};
+
+      for (const team of filteredTeams) {
+        try {
+          const response = await fetch(`/api/club/players/${team.id}`);
+          const data = await response.json();
+          counts[team.id] = data.players ? data.players.length : 0;
+        } catch (error) {
+          console.error('Error fetching players for', team.id, ':', error);
+          counts[team.id] = 0;
+        }
+      }
+
+      setPlayerCounts(counts);
+    };
+
+    fetchPlayerCounts();
+  }, [filteredTeams]);
 
   return (
     <>
@@ -107,9 +132,19 @@ export default function KlubyPage() {
                   <h2 className="text-white font-black text-2xl text-center uppercase tracking-tight mb-1">
                     {team.name}
                   </h2>
-                  
-                  <div className="w-12 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent mb-4"></div>
-                  
+
+                  <div className="w-12 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent mb-2"></div>
+
+                  <div className="text-center mb-4">
+                    <div className="text-gray-300 text-sm font-medium">
+                      {playerCounts[team.id] !== undefined ? (
+                        <span>{playerCounts[team.id]} ZAWODNIK{playerCounts[team.id] !== 1 ? 'ÓW' : ''}</span>
+                      ) : (
+                        <span>Ładowanie...</span>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2 text-blue-400 font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
                     <span>ZOBACZ PROFIL</span>
                     <span>→</span>

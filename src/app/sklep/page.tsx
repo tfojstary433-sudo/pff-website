@@ -5,6 +5,7 @@ import { Footer } from '@/components/footer';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 
 const tokenPackages = [
   {
@@ -49,7 +50,8 @@ const products = [
   {
     id: 'unprzerwa',
     name: 'UNPRZERWA',
-    price: 10, // 5 PLN
+    price: 5, // 5 PLN
+    pln: '5 zł',
     description: 'Usuwa aktywną przerwę w grze.',
     category: 'unprzerwa',
     image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
@@ -57,7 +59,8 @@ const products = [
   {
     id: 'unwarn',
     name: 'UNWARN',
-    price: 30, // 15 PLN
+    price: 15, // 15 PLN
+    pln: '15 zł',
     description: 'Usuwa ostrzeżenie z konta.',
     category: 'unwarn',
     image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
@@ -65,7 +68,8 @@ const products = [
   {
     id: 'szatnia-2',
     name: 'Szatnia Poziom II',
-    price: 50, // 25 PLN
+    price: 25, // 25 PLN
+    pln: '25 zł',
     description: 'Odblokowuje szatnię na poziomie II dla Twojego klubu.',
     category: 'szatnia',
     image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
@@ -73,7 +77,8 @@ const products = [
   {
     id: 'stroje-dodatkowe',
     name: 'Dodatkowe Stroje',
-    price: 15, // 7.5 PLN
+    price: 8, // 8 PLN
+    pln: '8 zł',
     description: 'Odblokowuje dodatkowe stroje dla Twojego klubu.',
     category: 'stroje',
     image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
@@ -81,7 +86,8 @@ const products = [
   {
     id: 'unban',
     name: 'UNBAN',
-    price: 100, // 50 PLN
+    price: 50, // 50 PLN
+    pln: '50 zł',
     description: 'Odblokowanie banowania z serwera.',
     category: 'unban',
     badge: 'PREMIUM',
@@ -100,6 +106,41 @@ const subscriptions = [
     image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
   }
 ];
+
+const vipPackages = [
+  {
+    id: 'vip-30-days',
+    name: 'VIP 30 DNI',
+    description: 'Status VIP na 30 dni z pełnym dostępem do wszystkich przywilejów.',
+    price: 50, // 50 PLN
+    pln: '50 zł',
+    days: 30,
+    badge: 'ZA PIENIĄDZE',
+    image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
+  },
+  {
+    id: 'vip-90-days',
+    name: 'VIP 90 DNI',
+    description: 'Status VIP na 90 dni z pełnym dostępem do wszystkich przywilejów.',
+    price: 120, // 120 PLN
+    pln: '120 zł',
+    days: 90,
+    badge: 'ZA PIENIĄDZE',
+    image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
+  },
+  {
+    id: 'vip-180-days',
+    name: 'VIP 180 DNI',
+    description: 'Status VIP na 180 dni z pełnym dostępem do wszystkich przywilejów.',
+    price: 200, // 200 PLN
+    pln: '200 zł',
+    days: 180,
+    badge: 'ZA PIENIĄDZE',
+    image: 'https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png'
+  }
+];
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function SklepPage() {
   const router = useRouter();
@@ -157,29 +198,106 @@ export default function SklepPage() {
     updateCart(cart.filter(i => i.id !== id));
   };
 
-  const handleBuyTokens = (pkg: typeof tokenPackages[0]) => {
-    setConfirmModal({ ...pkg, type: 'tokens' });
+  const handleBuyTokens = async (pkg: typeof tokenPackages[0]) => {
+    if (!user) {
+      setMessage({ type: 'error', text: 'Musisz być zalogowany' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: pkg.id,
+          userId: user.id,
+          productType: 'tokens',
+          productData: {
+            id: pkg.id,
+            name: pkg.name,
+            description: `${pkg.regularTokens} tokenów + ${pkg.bonusTokens} bonus`,
+            price: pkg.price,
+            regularTokens: pkg.regularTokens,
+            bonusTokens: pkg.bonusTokens,
+            customerEmail: user.email,
+          },
+        }),
+      });
+
+      const { url } = await response.json();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        setMessage({ type: 'error', text: 'Błąd podczas tworzenia płatności' });
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      setMessage({ type: 'error', text: 'Błąd podczas tworzenia płatności' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCustomTokens = () => {
+  const handleCustomTokens = async () => {
     const amount = parseInt(customAmount);
     if (isNaN(amount) || amount <= 0) {
       setMessage({ type: 'error', text: 'Podaj poprawną ilość tokenów' });
       return;
     }
-    const price = amount * 0.5;
-    setConfirmModal({
-      id: 'custom',
-      name: 'Własna Ilość',
-      regularTokens: amount,
-      bonusTokens: 0,
-      price: price,
-      pln: `${price.toFixed(2)} zł`,
-      type: 'tokens'
-    });
+
+    if (!user) {
+      setMessage({ type: 'error', text: 'Musisz być zalogowany' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const price = amount * 0.4;
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: 'custom-tokens',
+          userId: user.id,
+          productType: 'tokens',
+          productData: {
+            id: 'custom-tokens',
+            name: `Własna Ilość Tokenów (${amount})`,
+            description: `${amount} tokenów`,
+            price: price,
+            amount: amount,
+            customerEmail: user.email,
+          },
+        }),
+      });
+
+      const { url } = await response.json();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        setMessage({ type: 'error', text: 'Błąd podczas tworzenia płatności' });
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      setMessage({ type: 'error', text: 'Błąd podczas tworzenia płatności' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBuyProduct = (product: any) => {
+    if (!user) {
+      setMessage({ type: 'error', text: 'Musisz być zalogowany, aby kupić produkt' });
+      return;
+    }
+
     addToCart(product);
   };
 
@@ -193,6 +311,50 @@ export default function SklepPage() {
       price: totalTokens,
       days: days
     });
+  };
+
+  const handleBuyVip = async (vipPkg: any) => {
+    if (!user) {
+      setMessage({ type: 'error', text: 'Musisz być zalogowany, aby kupić VIP' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: `vip-${vipPkg.days}-days`,
+          userId: user.id,
+          productType: 'vip',
+          productData: {
+            id: vipPkg.id,
+            name: vipPkg.name,
+            description: vipPkg.description,
+            price: vipPkg.price,
+            image: vipPkg.image,
+            days: vipPkg.days,
+            customerEmail: user.email,
+          },
+        }),
+      });
+
+      const { url } = await response.json();
+
+      if (url) {
+        window.location.href = url; // Redirect to Stripe Checkout
+      } else {
+        setMessage({ type: 'error', text: 'Błąd podczas tworzenia płatności' });
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      setMessage({ type: 'error', text: 'Błąd podczas tworzenia płatności' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const saveRobloxUsername = async () => {
@@ -253,6 +415,16 @@ export default function SklepPage() {
           setMessage({ type: 'error', text: 'Błąd podczas zakupu' });
         })
         .finally(() => setLoading(false));
+    } else if (item.type === 'vip') {
+      // VIP purchases are handled directly via Stripe Checkout
+      setMessage({ type: 'error', text: 'Błąd: VIP powinien być kupowany bezpośrednio' });
+      setConfirmModal(null);
+      setLoading(false);
+    } else if (item.type === 'tokens') {
+      // Token purchases are handled directly via Stripe Checkout
+      setMessage({ type: 'error', text: 'Błąd: Tokeny powinny być kupowane bezpośrednio' });
+      setConfirmModal(null);
+      setLoading(false);
     } else {
       // Logic for buying products/subscriptions with tokens
       const totalCost = cart.reduce((acc, i) => acc + (i.price * (i.quantity || 1)), 0);
@@ -563,64 +735,138 @@ export default function SklepPage() {
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {subscriptions.map((sub) => (
-                    <div 
-                      key={sub.id}
-                      className="group relative bg-white/5 border border-white/10 rounded-3xl p-8 hover:border-[#00ccff]/50 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
-                    >
-                      <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      
-                      <div className="relative z-10 flex flex-col h-full">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-2xl font-black uppercase tracking-tight group-hover:text-[#00ccff] transition-colors">
-                            {sub.name}
-                          </h3>
-                          <div className="bg-yellow-500/80 px-3 py-1 rounded-full text-[10px] font-black uppercase text-black">
-                            {sub.badge}
-                          </div>
-                        </div>
-                        
-                        <p className="text-white/50 text-sm mb-8">
-                          {sub.description}
-                        </p>
+                <div className="space-y-12">
+                  {/* VIP za pieniądze */}
+                  <div>
+                    <div className="text-center mb-12">
+                      <h2 className="text-4xl font-black uppercase tracking-tight mb-4 bg-gradient-to-r from-white via-[#00ccff] to-white bg-clip-text text-transparent">
+                        VIP ZA PIENIĄDZE
+                      </h2>
+                      <p className="text-white/60 text-lg max-w-2xl mx-auto">
+                        Kup status VIP bezpośrednio za prawdziwe pieniądze i ciesz się natychmiastowymi korzyściami.
+                      </p>
+                    </div>
 
-                        <div className="space-y-4 mb-8">
-                          <label className="text-xs font-bold text-white/40 uppercase block">Wybierz okres (dni):</label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[7, 30, 90].map((d) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+                      {vipPackages.map((vip) => (
+                        <div
+                          key={vip.id}
+                          className="group relative bg-gradient-to-br from-[#00ccff]/10 to-[#0066ff]/5 border border-[#00ccff]/30 rounded-3xl p-6 hover:border-[#00ccff]/70 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
+                        >
+                          <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/30 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                          <div className="relative z-10 flex flex-col h-full">
+                            <div className="mb-4 flex justify-between items-start">
+                              <div className="flex items-center gap-2">
+                                <img src={vip.image} alt="" className="w-8 h-8 object-contain" />
+                                <span className="px-2 py-1 bg-[#00ccff]/20 text-[#00ccff] text-[10px] font-black uppercase rounded-full border border-[#00ccff]/30">
+                                  {vip.badge}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mb-4 flex-1">
+                              <h3 className="text-2xl font-black uppercase tracking-tight mb-2 group-hover:text-[#00ccff] transition-colors">
+                                {vip.name}
+                              </h3>
+                              <p className="text-white/60 text-sm leading-relaxed">
+                                {vip.description}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-white/40 uppercase">Cena:</span>
+                                <span className="text-2xl font-black text-[#00ccff]">
+                                  {vip.pln}
+                                </span>
+                              </div>
+
                               <button
-                                key={d}
-                                onClick={() => setSubDays({ ...subDays, [sub.id]: d })}
-                                className={`py-2 rounded-xl font-black transition-all ${subDays[sub.id] === d ? 'bg-[#00ccff] text-black' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                                onClick={() => handleBuyVip(vip)}
+                                disabled={loading}
+                                className="px-8 py-3 bg-[#00ccff] hover:bg-[#00ccff]/80 disabled:bg-gray-500 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)] disabled:cursor-not-allowed"
                               >
-                                {d}
+                                {loading ? 'PRZETWARZANIE...' : 'KUP TERAZ'}
                               </button>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-white/40 uppercase">Razem:</span>
-                            <div className="flex items-center gap-2">
-                              <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="Token" className="w-5 h-5 object-contain" />
-                              <span className="text-2xl font-black text-[#00ccff]">
-                                {sub.pricePerDay * (subDays[sub.id] || 30)}
-                              </span>
                             </div>
                           </div>
-                          
-                          <button 
-                            onClick={() => handleBuySubscription(sub)}
-                            className="px-8 py-3 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)]"
-                          >
-                            DODAJ DO KOSZYKA
-                          </button>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Subskrypcje za tokeny */}
+                  <div>
+                    <div className="text-center mb-12">
+                      <h2 className="text-4xl font-black uppercase tracking-tight mb-4 bg-gradient-to-r from-white via-[#00ccff] to-white bg-clip-text text-transparent">
+                        SUBSKRYPCJE ZA TOKENY
+                      </h2>
+                      <p className="text-white/60 text-lg max-w-2xl mx-auto">
+                        Kup subskrypcje za tokeny i ciesz się dodatkowymi korzyściami w grze.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {subscriptions.map((sub) => (
+                        <div
+                          key={sub.id}
+                          className="group relative bg-white/5 border border-white/10 rounded-3xl p-8 hover:border-[#00ccff]/50 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
+                        >
+                          <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                          <div className="relative z-10 flex flex-col h-full">
+                            <div className="mb-4 flex items-center justify-between">
+                              <h3 className="text-2xl font-black uppercase tracking-tight group-hover:text-[#00ccff] transition-colors">
+                                {sub.name}
+                              </h3>
+                              <div className="bg-yellow-500/80 px-3 py-1 rounded-full text-[10px] font-black uppercase text-black">
+                                {sub.badge}
+                              </div>
+                            </div>
+
+                            <p className="text-white/50 text-sm mb-8">
+                              {sub.description}
+                            </p>
+
+                            <div className="space-y-4 mb-8">
+                              <label className="text-xs font-bold text-white/40 uppercase block">Wybierz okres (dni):</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[7, 30, 90].map((d) => (
+                                  <button
+                                    key={d}
+                                    onClick={() => setSubDays({ ...subDays, [sub.id]: d })}
+                                    className={`py-2 rounded-xl font-black transition-all ${subDays[sub.id] === d ? 'bg-[#00ccff] text-black' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                                  >
+                                    {d}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-white/40 uppercase">Razem:</span>
+                                <div className="flex items-center gap-2">
+                                  <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="Token" className="w-5 h-5 object-contain" />
+                                  <span className="text-2xl font-black text-[#00ccff]">
+                                    {sub.pricePerDay * (subDays[sub.id] || 30)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => handleBuySubscription(sub)}
+                                className="px-8 py-3 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)]"
+                              >
+                                DODAJ DO KOSZYKA
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -687,41 +933,56 @@ export default function SklepPage() {
         </div>
       )}
 
-      {/* Token Purchase Confirmation Modal */}
+      {/* Purchase Confirmation Modal */}
       {confirmModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setConfirmModal(null)}></div>
           <div className="relative bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
             <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Potwierdź zakup</h3>
             <p className="text-white/40 text-sm mb-6">Zamawiasz: <span className="text-white font-bold">{confirmModal.name}</span></p>
-            
+
             <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/5">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-white/40 uppercase text-xs font-bold">Otrzymasz:</span>
-                <div className="flex items-center gap-2">
-                  <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="" className="w-5 h-5" />
-                  <span className="text-xl font-black text-[#00ccff]">{confirmModal.regularTokens + (confirmModal.bonusTokens || 0)}</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/40 uppercase text-xs font-bold">Do zapłaty:</span>
-                <span className="text-xl font-black text-white">{confirmModal.pln}</span>
-              </div>
+              {confirmModal.type === 'vip' ? (
+                <>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-white/40 uppercase text-xs font-bold">Okres VIP:</span>
+                    <span className="text-xl font-black text-[#00ccff]">{confirmModal.days} dni</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40 uppercase text-xs font-bold">Do zapłaty:</span>
+                    <span className="text-xl font-black text-white">{confirmModal.pln}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-white/40 uppercase text-xs font-bold">Otrzymasz:</span>
+                    <div className="flex items-center gap-2">
+                      <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="" className="w-5 h-5" />
+                      <span className="text-xl font-black text-[#00ccff]">{confirmModal.regularTokens + (confirmModal.bonusTokens || 0)}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/40 uppercase text-xs font-bold">Do zapłaty:</span>
+                    <span className="text-xl font-black text-white">{confirmModal.pln}</span>
+                  </div>
+                </>
+              )}
             </div>
-            
+
             <div className="flex gap-4">
-              <button 
+              <button
                 onClick={() => setConfirmModal(null)}
                 className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white font-black uppercase rounded-2xl transition-all"
               >
                 ANULUJ
               </button>
-              <button 
+              <button
                 onClick={() => confirmPurchase(confirmModal)}
                 disabled={loading}
                 className="flex-1 py-4 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black uppercase rounded-2xl transition-all active:scale-95 shadow-[0_0_30px_rgba(0,204,255,0.3)]"
               >
-                {loading ? 'ŁADOWANIE...' : 'POTWIERDZAM'}
+                {loading ? 'ŁADOWANIE...' : confirmModal.type === 'vip' ? 'PRZETWARZAM...' : 'POTWIERDZAM'}
               </button>
             </div>
           </div>

@@ -8,6 +8,11 @@ export interface Team {
   president?: string;
   coach?: string;
   spokesperson?: string;
+  discordAvatars?: {
+    president?: string;
+    coach?: string;
+    spokesperson?: string[];
+  };
   stadiumCapacity?: number;
   address?: string;
   phone?: string;

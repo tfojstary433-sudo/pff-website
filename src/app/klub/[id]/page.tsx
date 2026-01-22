@@ -6,13 +6,22 @@ import { useParams } from 'next/navigation';
 import { teams, newsArticles } from '@/lib/data';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface ClubPlayer {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  clubId: string;
+}
 
 export default function KlubPage() {
   const params = useParams();
   const id = params.id as string;
   const team = teams.find(t => t.id === id);
   const [activeTab, setActiveTab] = useState<'o-klubie' | 'zespół' | 'statystyki'>('o-klubie');
+  const [players, setPlayers] = useState<ClubPlayer[]>([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
 
   if (!team) {
     return (
@@ -23,7 +32,28 @@ export default function KlubPage() {
   }
 
   const teamColor = team.color || '#003087';
-  
+
+
+  // Fetch players when zespół tab is active
+  useEffect(() => {
+    if (activeTab === 'zespół' && players.length === 0 && !loadingPlayers) {
+      setLoadingPlayers(true);
+      fetch(`/api/club/players/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.players) {
+            setPlayers(data.players);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching players:', error);
+        })
+        .finally(() => {
+          setLoadingPlayers(false);
+        });
+    }
+  }, [activeTab, id, players.length, loadingPlayers]);
+
   // Dynamic news filtering based on tags or mentions in title/description
   const clubNews = newsArticles.filter(article => {
     const isRelatedById = (article as any).relatedTeamIds?.includes(team.id);
@@ -140,23 +170,74 @@ export default function KlubPage() {
               <h2 className="text-3xl font-black text-white mb-8 uppercase border-l-4 pl-4" style={{ borderColor: teamColor }}>INFORMACJE O KLUBIE</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-                <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
-                  <h3 className="text-xs font-black mb-3 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Data Powstania Klubu</h3>
-                  <p className="text-white text-3xl font-black">{team.founded || '-'}</p>
-                </div>
-                <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
-                  <h3 className="text-xs font-black mb-3 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Prezes</h3>
-                  <p className="text-white text-xl font-bold uppercase">{team.president || 'MLODYPIKEL'}</p>
-                </div>
-                <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
-                  <h3 className="text-xs font-black mb-3 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Trener</h3>
-                  <p className="text-white text-xl font-bold uppercase">{team.coach || 'MLODYPIKEL'}</p>
-                </div>
-                <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
-                  <h3 className="text-xs font-black mb-3 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Zarząd Klubu</h3>
-                  <p className="text-white text-xl font-bold uppercase">{team.spokesperson || '.PAKO7U7'}</p>
-                </div>
-              </div>
+                 <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
+                   <h3 className="text-xs font-black mb-3 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Data Powstania Klubu</h3>
+                   <p className="text-white text-3xl font-black">{team.founded || '-'}</p>
+                 </div>
+                 <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
+                   <div className="flex items-center gap-4">
+                     <div className="flex-shrink-0">
+                       <img
+                         src={team.discordAvatars?.president || `/api/roblox/avatar?username=${encodeURIComponent(team.president || 'MLODYPIKEL')}`}
+                         alt={team.president || 'MLODYPIKEL'}
+                         className="w-12 h-12 rounded-full border-2 border-white/20"
+                         onError={(e) => {
+                           const target = e.target as HTMLImageElement;
+                           target.src = `data:image/svg+xml;base64,${btoa(`<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" fill="#666"/><text x="24" y="32" font-family="Arial" font-size="24" fill="white" text-anchor="middle">${(team.president || 'MLODYPIKEL').charAt(0).toUpperCase()}</text></svg>`)}`;
+                         }}
+                       />
+                     </div>
+                     <div>
+                       <h3 className="text-xs font-black mb-1 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Prezes</h3>
+                       <p className="text-white text-lg font-bold uppercase">{team.president || 'MLODYPIKEL'}</p>
+                     </div>
+                   </div>
+                 </div>
+                 <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
+                   <div className="flex items-center gap-4">
+                     <div className="flex-shrink-0">
+                       <img
+                         src={team.discordAvatars?.coach || `/api/roblox/avatar?username=${encodeURIComponent(team.coach || 'MLODYPIKEL')}`}
+                         alt={team.coach || 'MLODYPIKEL'}
+                         className="w-12 h-12 rounded-full border-2 border-white/20"
+                         onError={(e) => {
+                           const target = e.target as HTMLImageElement;
+                           target.src = `data:image/svg+xml;base64,${btoa(`<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" fill="#666"/><text x="24" y="32" font-family="Arial" font-size="24" fill="white" text-anchor="middle">${(team.coach || 'MLODYPIKEL').charAt(0).toUpperCase()}</text></svg>`)}`;
+                         }}
+                       />
+                     </div>
+                     <div>
+                       <h3 className="text-xs font-black mb-1 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Trener</h3>
+                       <p className="text-white text-lg font-bold uppercase">{team.coach || 'MLODYPIKEL'}</p>
+                     </div>
+                   </div>
+                 </div>
+                 <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm group hover:border-white/20 transition-all">
+                   <h3 className="text-xs font-black mb-3 uppercase tracking-wider opacity-60" style={{ color: teamColor }}>Zarząd Klubu</h3>
+                   <div className="space-y-3">
+                     {(team.spokesperson || '.PAKO7U7').split(',').map((person, index) => {
+                       const trimmedPerson = person.trim();
+                       const discordAvatar = team.discordAvatars?.spokesperson?.[index];
+                       return (
+                         <div key={index} className="flex items-center gap-3">
+                           <div className="flex-shrink-0">
+                             <img
+                               src={discordAvatar || `/api/roblox/avatar?username=${encodeURIComponent(trimmedPerson)}`}
+                               alt={trimmedPerson}
+                               className="w-10 h-10 rounded-full border-2 border-white/20"
+                               onError={(e) => {
+                                 const target = e.target as HTMLImageElement;
+                                 target.src = `data:image/svg+xml;base64,${btoa(`<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="#666"/><text x="20" y="26" font-family="Arial" font-size="20" fill="white" text-anchor="middle">${trimmedPerson.charAt(0).toUpperCase()}</text></svg>`)}`;
+                               }}
+                             />
+                           </div>
+                           <p className="text-white text-sm font-bold uppercase">{trimmedPerson}</p>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 </div>
+               </div>
 
               {team.achievements && (
                 <div>
@@ -195,9 +276,51 @@ export default function KlubPage() {
           {activeTab === 'zespół' && (
             <div>
               <h2 className="text-3xl font-black text-white mb-8 uppercase border-l-4 pl-4" style={{ borderColor: teamColor }}>SKŁAD ZESPOŁU</h2>
-              <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-8 rounded-xl border border-white/10 backdrop-blur-sm">
-                <p className="text-gray-400 text-lg">Brak danych o składzie</p>
-              </div>
+              {loadingPlayers ? (
+                <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-8 rounded-xl border border-white/10 backdrop-blur-sm">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <span className="ml-3 text-white">Ładowanie zawodników...</span>
+                  </div>
+                </div>
+              ) : players.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {players.map((player) => (
+                    <div
+                      key={player.userId}
+                      className="bg-gradient-to-br from-gray-900/90 to-black/90 p-6 rounded-xl border border-white/10 backdrop-blur-sm hover:border-white/20 transition-all hover:scale-105 group"
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <div className="relative mb-4">
+                          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-white/40 transition-colors">
+                            <img
+                              src={player.avatarUrl || `https://www.roblox.com/headshot-thumbnail/image?userId=${player.userId}&width=150&height=150&format=png`}
+                              alt={player.username}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = `data:image/svg+xml;base64,${btoa(`<svg width="150" height="150" xmlns="http://www.w3.org/2000/svg"><rect width="150" height="150" fill="#666"/><text x="75" y="85" font-family="Arial" font-size="60" fill="white" text-anchor="middle">${player.username.charAt(0).toUpperCase()}</text></svg>`)}`;
+                              }}
+                            />
+                          </div>
+                          <div
+                            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-black"
+                            style={{ backgroundColor: teamColor }}
+                          ></div>
+                        </div>
+                        <h3 className="text-white font-bold text-lg mb-1 uppercase tracking-wide">
+                          {player.username}
+                        </h3>
+                        <p className="text-gray-400 text-sm">Zawodnik</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-8 rounded-xl border border-white/10 backdrop-blur-sm">
+                  <p className="text-gray-400 text-lg">Brak zawodników w tym klubie</p>
+                </div>
+              )}
             </div>
           )}
 
