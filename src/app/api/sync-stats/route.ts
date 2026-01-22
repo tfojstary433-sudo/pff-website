@@ -32,7 +32,24 @@ export async function POST(request: NextRequest) {
     let externalStats: any[] = [];
 
     if (tableRes.ok) {
-      externalTable = await tableRes.json();
+      const rawTable = await tableRes.json();
+      // Ensure unique team IDs
+      const usedIds = new Set<string>();
+      externalTable = rawTable.map((t: any, index: number) => {
+        let teamId = t.team?.id || `team_${index}`;
+        if (usedIds.has(teamId)) {
+          teamId = `${teamId}_${index}`;
+        }
+        usedIds.add(teamId);
+
+        return {
+          ...t,
+          team: {
+            ...t.team,
+            id: teamId
+          }
+        };
+      });
       console.log(`📊 Fetched ${externalTable.length} teams from Replit API`);
     }
 

@@ -72,17 +72,33 @@ export function useMatchStats() {
       if (tableRes.ok) {
         const table = await tableRes.json();
         if (Array.isArray(table)) {
-          const formattedStandings = table.map((t: any) => ({
-            teamId: t.team.id,
-            played: Math.max(0, t.played || 0), // Ensure non-negative
-            won: Math.max(0, t.won || 0),
-            drawn: Math.max(0, t.drawn || 0),
-            lost: Math.max(0, t.lost || 0),
-            goalsFor: Math.max(0, t.goalsFor || 0),
-            goalsAgainst: Math.max(0, t.goalsAgainst || 0),
-            goalDifference: t.goalDifference || ((t.goalsFor || 0) - (t.goalsAgainst || 0)),
-            points: Math.max(0, t.points || 0) // Ensure non-negative
-          }));
+          // Track used team IDs to avoid duplicates
+          const usedIds = new Set<string>();
+
+          const formattedStandings = table.map((t: any, index: number) => {
+            const goalsFor = Math.max(0, t.goalsFor || 0);
+            const goalsAgainst = Math.max(0, t.goalsAgainst || 0);
+            const goalDifference = t.goalDifference !== undefined ? t.goalDifference : (goalsFor - goalsAgainst);
+
+            // Ensure unique team ID
+            let teamId = t.team?.id || `team_${index}`;
+            if (usedIds.has(teamId)) {
+              teamId = `${teamId}_${index}`;
+            }
+            usedIds.add(teamId);
+
+            return {
+              teamId,
+              played: Math.max(0, t.played || 0),
+              won: Math.max(0, t.won || 0),
+              drawn: Math.max(0, t.drawn || 0),
+              lost: Math.max(0, t.lost || 0),
+              goalsFor,
+              goalsAgainst,
+              goalDifference, // Allow negative values for goal difference
+              points: Math.max(0, t.points || 0)
+            };
+          });
           setStandings(formattedStandings);
           localStorage.setItem('standings', JSON.stringify(formattedStandings));
           console.log('✅ Loaded standings from Replit API:', formattedStandings);
