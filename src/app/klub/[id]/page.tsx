@@ -9,10 +9,14 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 
 interface ClubPlayer {
-  userId: string;
-  username: string;
-  avatarUrl: string | null;
-  clubId: string;
+   userId: string;
+   username: string;
+   avatarUrl: string | null;
+   clubId: string;
+   value?: number;
+   previousClubs?: string[];
+   lastMatchNumber?: number;
+   position?: string;
 }
 
 export default function KlubPage() {
@@ -303,14 +307,44 @@ export default function KlubPage() {
                             />
                           </div>
                           <div
-                            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-black"
+                            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-black flex items-center justify-center"
                             style={{ backgroundColor: teamColor }}
-                          ></div>
+                          >
+                            <span className="text-white text-xs font-bold">
+                              {player.lastMatchNumber || '?'}
+                            </span>
+                          </div>
                         </div>
                         <h3 className="text-white font-bold text-lg mb-1 uppercase tracking-wide">
                           {player.username}
                         </h3>
-                        <p className="text-gray-400 text-sm">Zawodnik</p>
+                        <p className="text-gray-400 text-sm mb-2">{player.position || 'Zawodnik'}</p>
+
+                        {player.value && (
+                          <div className="text-center mb-2">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider">Wartość</p>
+                            <p className="text-[#00ccff] font-bold">{player.value} zł</p>
+                          </div>
+                        )}
+
+                        {player.previousClubs && player.previousClubs.length > 0 && (
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Poprzednie Kluby</p>
+                            <div className="flex flex-wrap justify-center gap-1">
+                              {player.previousClubs.slice(0, 2).map((club, index) => (
+                                <span
+                                  key={index}
+                                  className="text-xs bg-white/10 px-2 py-1 rounded-full text-gray-300"
+                                >
+                                  {club}
+                                </span>
+                              ))}
+                              {player.previousClubs.length > 2 && (
+                                <span className="text-xs text-gray-500">+{player.previousClubs.length - 2}</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
