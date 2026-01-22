@@ -5,6 +5,30 @@ import { matches as scheduledMatches } from '@/lib/data';
 import { useMatchStats } from '@/lib/useMatchStats';
 import { useState, useEffect } from 'react';
 
+// Helper function for team logos
+function getTeamLogo(teamId: string): string {
+  const teamLogos: Record<string, string> = {
+    'ARK': 'https://ext.same-assets.com/1250577607/451783410.png',
+    'LEG': 'https://ext.same-assets.com/1250577607/695801781.png',
+    'LEC': 'https://ext.same-assets.com/1250577607/3317158738.png',
+    'LGD': 'https://upload.wikimedia.org/wikipedia/en/3/3a/Lechia_Gda%C5%84sk_logo.svg',
+    'POG': 'https://ext.same-assets.com/1250577607/3079565559.png',
+    'ZAW': 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png',
+    'OLI': 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png',
+    'UNI': 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png',
+    'MOT': 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png',
+    'SOK': 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png',
+    'WIS': 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg',
+    'GRO': 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png',
+    'CHO': 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Chojniczanka_Chojnice_logo.png',
+    'ZAG': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png',
+    'LEC_0': 'https://ext.same-assets.com/1250577607/21331563.png', // Lechia Gdańsk
+    'LEC_3': 'https://ext.same-assets.com/1250577607/21331563.png', // Lechia Gdańsk
+    'LEC_1': 'https://i.ibb.co/TB027G07/czarnepff-1.png' // Placeholder
+  };
+  return teamLogos[teamId] || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
+}
+
 export function RecentResultsSidebar() {
   const { finishedMatches } = useMatchStats();
   const [mounted, setMounted] = useState(false);

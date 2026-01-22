@@ -361,7 +361,7 @@ export default function MatchDetail() {
   
   const [activeTab, setActiveTab] = useState<'na-żywo' | 'relacja' | 'składy' | 'statystyki'>('relacja');
   const [apiData, setApiData] = useState<MatchApiData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasAutoSwitched = useRef(false);
 
@@ -437,6 +437,7 @@ export default function MatchDetail() {
   // Check if match is finished based on localStorage
   const [isMatchFinished, setIsMatchFinished] = useState(false);
   const [isMatchActive, setIsMatchActive] = useState(false);
+  const [finishedMatchData, setFinishedMatchData] = useState<any>(null);
 
   useEffect(() => {
     // Load finished matches from localStorage
@@ -447,6 +448,15 @@ export default function MatchDetail() {
         setFinishedMatches(finished);
         setIsMatchFinished(finished[id] || false);
         setIsMatchActive(!(finished[id] || false));
+
+        // Load match result data for finished matches
+        if (finished[id]) {
+          const matchStats = localStorage.getItem('matchStats');
+          if (matchStats) {
+            const stats = JSON.parse(matchStats);
+            setFinishedMatchData(stats[id] || null);
+          }
+        }
       } else {
         setIsMatchFinished(false);
         setIsMatchActive(true);
@@ -686,9 +696,9 @@ export default function MatchDetail() {
                       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
                       <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-blue-400/60 mb-4 relative z-10">WYNIK KOŃCOWY</span>
                       <div className="text-6xl md:text-9xl font-black tracking-tighter flex items-center gap-4 md:gap-8 tabular-nums relative z-10">
-                        <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{apiData ? (calculatedScore?.scoreA ?? apiData.match.scoreA) : match?.homeScore ?? '0'}</span>
+                        <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{finishedMatchData ? finishedMatchData.homeScore : (apiData ? (calculatedScore?.scoreA ?? apiData.match.scoreA) : match?.homeScore ?? '0')}</span>
                         <span className="text-white/10">:</span>
-                        <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{apiData ? (calculatedScore?.scoreB ?? apiData.match.scoreB) : match?.awayScore ?? '0'}</span>
+                        <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{finishedMatchData ? finishedMatchData.awayScore : (apiData ? (calculatedScore?.scoreB ?? apiData.match.scoreB) : match?.awayScore ?? '0')}</span>
                       </div>
                       <div className="flex gap-2.5 mt-6 relative z-10">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-duration:0.8s]"></div>
@@ -719,27 +729,27 @@ export default function MatchDetail() {
                 {/* Score Summary (Goals) */}
                 <div className="grid grid-cols-2 gap-12 md:gap-32 mb-20 max-w-5xl mx-auto">
                   <div className="flex flex-col gap-3 items-end">
-                    {apiData?.events?.goals && apiData.events.goals.filter(g => isHomeTeam(g)).map((goal, idx) => (
+                    {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === homeTeam.id) : apiData.events.goals.filter(g => isHomeTeam(g))).map((goal: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/5 transition-all group cursor-default">
                         <div className="flex flex-col items-end">
-                          <span className="text-white text-sm font-black uppercase tracking-wide group-hover:text-blue-400 transition-colors">{goal.player}</span>
+                          <span className="text-white text-sm font-black uppercase tracking-wide group-hover:text-blue-400 transition-colors">{goal.playerName || goal.player}</span>
                           <span className="text-white/20 text-[9px] font-black uppercase tracking-widest">GOL</span>
                         </div>
                         <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
-                          {goal.minute}'
+                          {goal.minute || '90'}'
                         </div>
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="flex flex-col gap-3 items-start">
-                    {apiData?.events?.goals && apiData.events.goals.filter(g => isAwayTeam(g)).map((goal, idx) => (
+                    {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === awayTeam.id) : apiData.events.goals.filter(g => isAwayTeam(g))).map((goal: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/5 transition-all group cursor-default">
                         <div className="w-9 h-9 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
-                          {goal.minute}'
+                          {goal.minute || '90'}'
                         </div>
                         <div className="flex flex-col items-start">
-                          <span className="text-white text-sm font-black uppercase tracking-wide group-hover:text-red-400 transition-colors">{goal.player}</span>
+                          <span className="text-white text-sm font-black uppercase tracking-wide group-hover:text-red-400 transition-colors">{goal.playerName || goal.player}</span>
                           <span className="text-white/20 text-[9px] font-black uppercase tracking-widest">GOL</span>
                         </div>
                       </div>

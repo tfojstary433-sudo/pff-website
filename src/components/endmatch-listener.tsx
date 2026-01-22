@@ -126,7 +126,12 @@ export function EndMatchListener() {
               scorers: groupedScorers
             });
 
-            console.log('✅ Mecz zapisany!');
+            // Mark match as finished in localStorage
+            const currentFinished = JSON.parse(localStorage.getItem('finishedMatches') || '{}');
+            currentFinished[scheduledMatch.id] = true;
+            localStorage.setItem('finishedMatches', JSON.stringify(currentFinished));
+
+            console.log('✅ Mecz zapisany i oznaczony jako zakończony!');
           } catch (detailsError) {
             console.error('❌ Błąd pobierania szczegółów:', detailsError);
           }

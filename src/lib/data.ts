@@ -257,13 +257,21 @@ export const teams: Team[] = [
     color: '#facc15',
     stadium: 'Arena Lublin'
   },
-  { 
-    id: 'OLI', 
-    name: 'Olimpia Elbląg', 
-    shortName: 'Olimpia', 
+  {
+    id: 'OLI',
+    name: 'Olimpia Elbląg',
+    shortName: 'Olimpia',
     logo: 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png',
     color: '#1e40af',
     stadium: 'Stadion Miejski w Elblągu'
+  },
+  {
+    id: 'CHO',
+    name: 'Chojniczanka Chojnice',
+    shortName: 'Chojniczanka',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Chojniczanka_Chojnice_logo.png',
+    color: '#3b82f6',
+    stadium: 'Stadion Miejski w Chojnicach'
   },
 ];
 

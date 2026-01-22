@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
 import { matches, standings } from '@/lib/data';
+import { useMatchStats } from '@/lib/useMatchStats';
 
 import { LeagueTable } from './league-table';
 import { Statistics } from './statistics';
@@ -34,15 +35,16 @@ interface ScheduleTableOverlayProps {
   setActiveTab?: (tab: 'terminarz' | 'tabela' | 'live' | 'statystyki') => void;
 }
 
-export function ScheduleTableOverlay({ 
-  isMinimized: externalIsMinimized, 
+export function ScheduleTableOverlay({
+  isMinimized: externalIsMinimized,
   setIsMinimized: externalSetIsMinimized,
   activeTab: externalActiveTab,
   setActiveTab: externalSetActiveTab
 }: ScheduleTableOverlayProps) {
+  const { finishedMatches } = useMatchStats();
   const [internalActiveTab, setInternalActiveTab] = useState<'terminarz' | 'tabela' | 'live' | 'statystyki'>('terminarz');
   const [internalIsMinimized, setInternalIsMinimized] = useState(false);
-  
+
   const isMinimized = externalIsMinimized !== undefined ? externalIsMinimized : internalIsMinimized;
   const setIsMinimized = externalSetIsMinimized !== undefined ? externalSetIsMinimized : setInternalIsMinimized;
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
@@ -392,10 +394,20 @@ export function ScheduleTableOverlay({
                       {/* Time/Score */}
                       <div className="flex flex-col items-center gap-1 px-3">
                         <div className="bg-gradient-to-br from-gray-800 to-black border border-white/10 px-3 py-1.5 rounded-lg shadow-xl">
-                          <span className="text-base font-black text-white tracking-tight">{formatTime(match.date)}</span>
+                          {finishedMatches[match.id] ? (
+                            <span className="text-base font-black text-green-400 tracking-tight">
+                              {finishedMatches[match.id].homeScore}:{finishedMatches[match.id].awayScore}
+                            </span>
+                          ) : (
+                            <span className="text-base font-black text-white tracking-tight">{formatTime(match.date)}</span>
+                          )}
                         </div>
                         <div className="flex flex-col items-center">
-                          <span className="text-[8px] font-black text-[#00ccff] italic uppercase">{match.stadium?.split(' ')[0]} {match.stadium?.split(' ')[1]}...</span>
+                          {finishedMatches[match.id] ? (
+                            <span className="text-[8px] font-black text-green-400 uppercase">ZAKOŃCZONY</span>
+                          ) : (
+                            <span className="text-[8px] font-black text-[#00ccff] italic uppercase">{match.stadium?.split(' ')[0]} {match.stadium?.split(' ')[1]}...</span>
+                          )}
                           <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-600">
                             <span>#{homePos}</span>
                             <span className="text-blue-500">vs</span>
@@ -489,10 +501,10 @@ export function ScheduleTableOverlay({
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1.5">
-                          <span className="font-black text-white text-lg tracking-tighter">
-                            {standing.points}
+                          <span className="font-black text-white text-sm tracking-tighter">
+                            {standing.goalsFor}:{standing.goalsAgainst}
                           </span>
-                          <span className="text-[8px] text-gray-500 font-black uppercase">PKT</span>
+                          <span className="text-[8px] text-gray-500 font-black uppercase">BRAMKI</span>
                         </div>
                       </>
                     ) : (
