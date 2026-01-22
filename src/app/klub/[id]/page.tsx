@@ -23,20 +23,9 @@ export default function KlubPage() {
   const [players, setPlayers] = useState<ClubPlayer[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
 
-  if (!team) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="text-white text-2xl">Klub nie został znaleziony</div>
-      </div>
-    );
-  }
-
-  const teamColor = team.color || '#003087';
-
-
   // Fetch players when zespół tab is active
   useEffect(() => {
-    if (activeTab === 'zespół' && players.length === 0 && !loadingPlayers) {
+    if (activeTab === 'zespół' && players.length === 0 && !loadingPlayers && team) {
       setLoadingPlayers(true);
       fetch(`/api/club/players/${id}`)
         .then(res => res.json())
@@ -52,7 +41,17 @@ export default function KlubPage() {
           setLoadingPlayers(false);
         });
     }
-  }, [activeTab, id, players.length, loadingPlayers]);
+  }, [activeTab, id, players.length, loadingPlayers, team]);
+
+  if (!team) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-white text-2xl">Klub nie został znaleziony</div>
+      </div>
+    );
+  }
+
+  const teamColor = team.color || '#003087';
 
   // Dynamic news filtering based on tags or mentions in title/description
   const clubNews = newsArticles.filter(article => {
