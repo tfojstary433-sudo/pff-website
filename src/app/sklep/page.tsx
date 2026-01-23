@@ -146,7 +146,7 @@ export default function SklepPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState({ balance: 0, items: {} });
-  const [tab, setTab] = useState<'tokens' | 'products' | 'subscriptions'>('tokens');
+  const [tab, setTab] = useState<'tokens'>('tokens'); // Temporarily only allow tokens
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<any | null>(null);
@@ -465,7 +465,7 @@ export default function SklepPage() {
     }
   };
 
-  const discordAuthUrl = "https://discord.com/oauth2/authorize?client_id=1448788697653973082&response_type=code&redirect_uri=https%3A%2F%2Fpff-website-mjz2.vercel.app%2Fcallback&scope=email+identify";
+  const discordAuthUrl = "https://discord.com/oauth2/authorize?client_id=1448788697653973082&response_type=code&redirect_uri=https%3A%2F%2Fpff-website-mjz2.vercel.app%2Fcallback&scope=identify+email+guilds.members.read";
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-inter">
@@ -575,28 +575,33 @@ export default function SklepPage() {
             <div className="container mx-auto px-4">
               <div className="flex items-center justify-between">
                 <div className="flex gap-4">
-                  <button 
+                  <button
                     onClick={() => setTab('tokens')}
                     className={`px-6 py-4 uppercase font-black tracking-tight transition-all ${tab === 'tokens' ? 'text-[#00ccff] border-b-2 border-[#00ccff]' : 'text-white/40 hover:text-white'}`}
                   >
                     Kup Tokeny
                   </button>
-                  <button 
+                  {/* Temporarily disabled: Products and Subscriptions */}
+                  {/*
+                  <button
                     onClick={() => setTab('products')}
                     className={`px-6 py-4 uppercase font-black tracking-tight transition-all ${tab === 'products' ? 'text-[#00ccff] border-b-2 border-[#00ccff]' : 'text-white/40 hover:text-white'}`}
                   >
                     Produkty
                   </button>
-                  <button 
+                  <button
                     onClick={() => setTab('subscriptions')}
                     className={`px-6 py-4 uppercase font-black tracking-tight transition-all ${tab === 'subscriptions' ? 'text-[#00ccff] border-b-2 border-[#00ccff]' : 'text-white/40 hover:text-white'}`}
                   >
                     Subskrypcje
                   </button>
+                  */}
                 </div>
-                
+
+                {/* Temporarily disabled cart since only tokens are available */}
+                {/*
                 {cart.length > 0 && (
-                  <button 
+                  <button
                     onClick={() => setShowCart(true)}
                     className="relative p-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all"
                   >
@@ -608,6 +613,7 @@ export default function SklepPage() {
                     </span>
                   </button>
                 )}
+                */}
               </div>
             </div>
           </div>
@@ -620,131 +626,75 @@ export default function SklepPage() {
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
             
             <div className="container mx-auto px-4 relative z-10">
-              {tab === 'tokens' ? (
-                <div className="space-y-12">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {tokenPackages.map((pkg) => (
-                      <div 
-                        key={pkg.id}
-                        className="group relative bg-white/5 border border-white/10 rounded-3xl p-6 hover:border-[#00ccff]/50 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
-                      >
-                        <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        
-                        <div className="relative z-10 flex flex-col h-full">
-                          <div className="mb-6 flex justify-center">
-                            <img src={pkg.logo} alt={pkg.name} className="h-32 object-contain group-hover:scale-110 transition-transform duration-500" />
-                          </div>
-                          <div className="mb-4">
-                            <h3 className="text-2xl font-black uppercase tracking-tight mb-2 group-hover:text-[#00ccff] transition-colors">
-                              {pkg.name}
-                            </h3>
-                            <div className="flex flex-col gap-1 text-sm">
-                              <p className="text-white/60">{pkg.regularTokens} Tokeny</p>
-                              <p className="text-[#00ff88] font-bold">+{pkg.bonusTokens} Bonus</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
-                            <span className="text-xl font-black text-[#00ccff]">{pkg.pln}</span>
-                            
-                            <button 
-                              onClick={() => handleBuyTokens(pkg)}
-                              className="px-5 py-2.5 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)]"
-                            >
-                              KUP
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Custom Recharge */}
-                  <div className="max-w-2xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-md">
-                    <h3 className="text-2xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
-                      <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="" className="w-8 h-8" />
-                      Doładuj dowolną ilość
-                    </h3>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="flex-1 relative">
-                        <input 
-                          type="number" 
-                          value={customAmount}
-                          onChange={(e) => setCustomAmount(e.target.value)}
-                          placeholder="Wpisz ilość tokenów..."
-                          className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-xl font-black focus:border-[#00ccff]/50 transition-all outline-none"
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 font-black">PFF</div>
-                      </div>
-                      <button 
-                        onClick={handleCustomTokens}
-                        className="px-8 py-4 bg-gradient-to-r from-[#00ccff] to-[#0088ff] text-black font-black uppercase rounded-2xl transition-all active:scale-95 shadow-[0_0_30px_rgba(0,204,255,0.3)]"
-                      >
-                        DOŁADUJ
-                      </button>
-                    </div>
-                    {customAmount && !isNaN(parseInt(customAmount)) && (
-                      <p className="mt-4 text-white/40 font-bold">
-                        Koszt: <span className="text-white">{(parseInt(customAmount) * 0.5).toFixed(2)} zł</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : tab === 'products' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {products.map((product) => (
-                    <div 
-                      key={product.id}
+              <div className="space-y-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {tokenPackages.map((pkg) => (
+                    <div
+                      key={pkg.id}
                       className="group relative bg-white/5 border border-white/10 rounded-3xl p-6 hover:border-[#00ccff]/50 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
                     >
                       <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      
+
                       <div className="relative z-10 flex flex-col h-full">
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3 className="text-xl font-black uppercase tracking-tight group-hover:text-[#00ccff] transition-colors">
-                            {product.name}
-                          </h3>
-                          {product.badge && (
-                            <div className="bg-[#ff0080]/80 px-3 py-1 rounded-full text-[10px] font-black uppercase">
-                              {product.badge}
-                            </div>
-                          )}
+                        <div className="mb-6 flex justify-center">
+                          <img src={pkg.logo} alt={pkg.name} className="h-32 object-contain group-hover:scale-110 transition-transform duration-500" />
                         </div>
-                        
-                        <p className="text-white/50 text-sm mb-6 flex-grow">
-                          {product.description}
-                        </p>
-                        
-                        <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
-                          <div className="flex items-center gap-2">
-                            <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="Token" className="w-5 h-5 object-contain" />
-                            <span className="text-xl font-black text-[#00ccff]">
-                              {product.price}
-                            </span>
+                        <div className="mb-4">
+                          <h3 className="text-2xl font-black uppercase tracking-tight mb-2 group-hover:text-[#00ccff] transition-colors">
+                            {pkg.name}
+                          </h3>
+                          <div className="flex flex-col gap-1 text-sm">
+                            <p className="text-white/60">{pkg.regularTokens} Tokeny</p>
+                            <p className="text-[#00ff88] font-bold">+{pkg.bonusTokens} Bonus</p>
                           </div>
-                          
-                          <button 
-                            onClick={() => handleBuyProduct(product)}
-                            className="px-5 py-2.5 bg-white/10 hover:bg-[#00ccff] hover:text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 border border-white/10"
+                        </div>
+
+                        <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
+                          <span className="text-xl font-black text-[#00ccff]">{pkg.pln}</span>
+
+                          <button
+                            onClick={() => handleBuyTokens(pkg)}
+                            className="px-5 py-2.5 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)]"
                           >
-                            DODAJ
+                            KUP
                           </button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="space-y-12">
-                  {/* VIP za pieniądze */}
-                  <div>
-                    <div className="text-center mb-12">
-                      <h2 className="text-4xl font-black uppercase tracking-tight mb-4 bg-gradient-to-r from-white via-[#00ccff] to-white bg-clip-text text-transparent">
-                        VIP ZA PIENIĄDZE
-                      </h2>
-                      <p className="text-white/60 text-lg max-w-2xl mx-auto">
-                        Kup status VIP bezpośrednio za prawdziwe pieniądze i ciesz się natychmiastowymi korzyściami.
-                      </p>
+
+                {/* Custom Recharge */}
+                <div className="max-w-2xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-md">
+                  <h3 className="text-2xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
+                    <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="" className="w-8 h-8" />
+                    Doładuj dowolną ilość
+                  </h3>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 relative">
+                      <input
+                        type="number"
+                        value={customAmount}
+                        onChange={(e) => setCustomAmount(e.target.value)}
+                        placeholder="Wpisz ilość tokenów..."
+                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-xl font-black focus:border-[#00ccff]/50 transition-all outline-none"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 font-black">PFF</div>
+                    </div>
+                    <button
+                      onClick={handleCustomTokens}
+                      className="px-8 py-4 bg-gradient-to-r from-[#00ccff] to-[#0088ff] text-black font-black uppercase rounded-2xl transition-all active:scale-95 shadow-[0_0_30px_rgba(0,204,255,0.3)]"
+                    >
+                      DOŁADUJ
+                    </button>
+                  </div>
+                  {customAmount && !isNaN(parseInt(customAmount)) && (
+                    <p className="mt-4 text-white/40 font-bold">
+                      Koszt: <span className="text-white">{(parseInt(customAmount) * 0.5).toFixed(2)} zł</span>
+                    </p>
+                  )}
+                </div>
+              </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
@@ -868,128 +818,12 @@ export default function SklepPage() {
                     </div>
                   </div>
                 </div>
-              )}
             </div>
           </div>
         </>
       )}
 
-      {/* Cart Sidebar/Modal */}
-      {showCart && (
-        <div className="fixed inset-0 z-[100] flex justify-end">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCart(false)}></div>
-          <div className="relative w-full max-w-md bg-[#0a0a0a] border-l border-white/10 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-2xl font-black uppercase tracking-tight">KOSZYK</h3>
-              <button onClick={() => setShowCart(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {cart.map((item, idx) => (
-                <div key={`${item.id}-${idx}`} className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4">
-                  <div className="flex-1">
-                    <h4 className="font-black uppercase text-sm">{item.name}</h4>
-                    <div className="flex items-center gap-2 text-[#00ccff]">
-                      <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="" className="w-3 h-3" />
-                      <span className="text-xs font-bold">{item.price}</span>
-                      {item.quantity > 1 && <span className="text-white/40 text-[10px]">x{item.quantity}</span>}
-                    </div>
-                  </div>
-                  <button onClick={() => removeFromCart(item.id)} className="p-2 hover:text-red-500 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-              {cart.length === 0 && (
-                <div className="text-center py-20 text-white/20 font-bold uppercase">Koszyk jest pusty</div>
-              )}
-            </div>
-            
-            <div className="p-6 border-t border-white/10 bg-white/5">
-              <div className="flex items-center justify-between mb-6">
-                <span className="font-bold text-white/40 uppercase">Suma:</span>
-                <div className="flex items-center gap-2">
-                  <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="" className="w-6 h-6" />
-                  <span className="text-2xl font-black text-[#00ccff]">
-                    {cart.reduce((acc, i) => acc + (i.price * (i.quantity || 1)), 0)}
-                  </span>
-                </div>
-              </div>
-              <button 
-                onClick={() => confirmPurchase({ type: 'cart' })}
-                disabled={cart.length === 0 || loading}
-                className="w-full py-4 bg-[#00ccff] hover:bg-[#00ccff]/80 disabled:opacity-50 disabled:cursor-not-allowed text-black font-black uppercase rounded-2xl transition-all active:scale-95 shadow-[0_0_30px_rgba(0,204,255,0.3)]"
-              >
-                {loading ? 'PRZETWARZANIE...' : 'ZAPŁAĆ TOKENAMI'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Purchase Confirmation Modal */}
-      {confirmModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setConfirmModal(null)}></div>
-          <div className="relative bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Potwierdź zakup</h3>
-            <p className="text-white/40 text-sm mb-6">Zamawiasz: <span className="text-white font-bold">{confirmModal.name}</span></p>
-
-            <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/5">
-              {confirmModal.type === 'vip' ? (
-                <>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-white/40 uppercase text-xs font-bold">Okres VIP:</span>
-                    <span className="text-xl font-black text-[#00ccff]">{confirmModal.days} dni</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/40 uppercase text-xs font-bold">Do zapłaty:</span>
-                    <span className="text-xl font-black text-white">{confirmModal.pln}</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-white/40 uppercase text-xs font-bold">Otrzymasz:</span>
-                    <div className="flex items-center gap-2">
-                      <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="" className="w-5 h-5" />
-                      <span className="text-xl font-black text-[#00ccff]">{confirmModal.regularTokens + (confirmModal.bonusTokens || 0)}</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/40 uppercase text-xs font-bold">Do zapłaty:</span>
-                    <span className="text-xl font-black text-white">{confirmModal.pln}</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={() => setConfirmModal(null)}
-                className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white font-black uppercase rounded-2xl transition-all"
-              >
-                ANULUJ
-              </button>
-              <button
-                onClick={() => confirmPurchase(confirmModal)}
-                disabled={loading}
-                className="flex-1 py-4 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black uppercase rounded-2xl transition-all active:scale-95 shadow-[0_0_30px_rgba(0,204,255,0.3)]"
-              >
-                {loading ? 'ŁADOWANIE...' : confirmModal.type === 'vip' ? 'PRZETWARZAM...' : 'POTWIERDZAM'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Footer />
-    </div>
+     <Footer />
+   </div>
   );
 }
