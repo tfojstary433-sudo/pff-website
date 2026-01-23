@@ -29,7 +29,7 @@ const saveData = (filename, data) => {
 
 // Konfiguracja CORS - zezwól na wszystko
 app.use(cors({
-    origin: ['*', 'https://polskafederacjafutbolu.netlify.app'],
+    origin: ['*', 'https://pff-website-mjz2.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true

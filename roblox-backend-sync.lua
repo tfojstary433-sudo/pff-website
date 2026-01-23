@@ -2,7 +2,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 local CONFIG = {
-    BACKEND_URL = "https://polskafederacjafutbolu.netlify.app",
+    BACKEND_URL = "https://pff-website-mjz2.vercel.app",
     MATCH_ID = 1,
     UPDATE_INTERVAL = 0.5
 }

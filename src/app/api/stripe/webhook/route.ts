@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return NextResponse.json(
+        { error: 'Stripe configuration missing' },
+        { status: 500 }
+      );
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
     const body = await request.text();
     const headersList = await headers();
     const sig = headersList.get('stripe-signature');
@@ -14,7 +21,7 @@ export async function POST(request: NextRequest) {
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(body, sig!, endpointSecret!);
+      event = stripe.webhooks.constructEvent(body, sig!, endpointSecret);
     } catch (err: any) {
       console.error('Webhook signature verification failed:', err.message);
       return NextResponse.json({ error: 'Webhook error' }, { status: 400 });

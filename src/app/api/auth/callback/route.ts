@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 const CLIENT_ID = '1448788697653973082';
 const CLIENT_SECRET = 'CiW1atPyupU5QO1H2Q2iYzw7hjEvarOW';
-const REDIRECT_URI = 'http://localhost:3000/callback';
+const REDIRECT_URI = 'https://pff-website-mjz2.vercel.app/callback';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

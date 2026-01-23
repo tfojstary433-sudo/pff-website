@@ -27,7 +27,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.pffroblox.pl"),
+  metadataBase: new URL("https://pff-website-mjz2.vercel.app"),
   title: "PFF Roblox - Oficjalna Strona Federacji",
   description: "Oficjalna strona Federacji PFF Roblox",
   icons: {

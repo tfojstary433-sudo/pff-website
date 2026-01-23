@@ -5,7 +5,7 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 -- Konfiguracja
-local API_URL = "https://polskafederacjafutbolu.netlify.app/api/endmatch"
+local API_URL = "https://pff-website-mjz2.vercel.app/api/endmatch"
 local MATCH_DATA = {
 	matchId = "",
 	homeTeamId = "",

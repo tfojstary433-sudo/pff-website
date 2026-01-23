@@ -465,7 +465,7 @@ export default function SklepPage() {
     }
   };
 
-  const discordAuthUrl = "https://discord.com/oauth2/authorize?client_id=1448788697653973082&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&scope=email+identify";
+  const discordAuthUrl = "https://discord.com/oauth2/authorize?client_id=1448788697653973082&response_type=code&redirect_uri=https%3A%2F%2Fpff-website-mjz2.vercel.app%2Fcallback&scope=email+identify";
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-inter">
