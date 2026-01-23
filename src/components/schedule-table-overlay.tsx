@@ -137,7 +137,7 @@ export function ScheduleTableOverlay({
     };
 
     fetchLiveMatches();
-    const interval = setInterval(fetchLiveMatches, 5000);
+    const interval = setInterval(fetchLiveMatches, 30000); // Increased from 5s to 30s
     return () => clearInterval(interval);
   }, []);
 

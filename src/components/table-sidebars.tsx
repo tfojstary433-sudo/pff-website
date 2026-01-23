@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { matches as scheduledMatches } from '@/lib/data';
 import { useMatchStats } from '@/lib/useMatchStats';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 
 // Helper function for team logos
 function getTeamLogo(teamId: string): string {
@@ -29,7 +29,7 @@ function getTeamLogo(teamId: string): string {
   return teamLogos[teamId] || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
 }
 
-export function RecentResultsSidebar() {
+export const RecentResultsSidebar = memo(function RecentResultsSidebar() {
   const { finishedMatches } = useMatchStats();
   const [mounted, setMounted] = useState(false);
 
@@ -82,9 +82,9 @@ export function RecentResultsSidebar() {
       )}
     </div>
   );
-}
+});
 
-export function SponsorsSidebar() {
+export const SponsorsSidebar = memo(function SponsorsSidebar() {
   const sponsors = [
     { src: "https://i.ibb.co/gL0mLH1m/Clash-MMALogo.png", alt: "Clash MMA" },
     { src: "https://i.ibb.co/XxHbj8Cd/04be6464-9300-4243-b4ee-6054050870e7.png", alt: "Sponsor 2" },
@@ -113,4 +113,4 @@ export function SponsorsSidebar() {
       </div>
     </div>
   );
-}
+});

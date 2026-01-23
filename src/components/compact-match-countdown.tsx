@@ -32,7 +32,12 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
     };
 
     calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
+    // Update every 10 seconds for better performance, or every second if less than 1 hour remaining
+    const target = new Date(targetDate).getTime();
+    const now = new Date().getTime();
+    const difference = target - now;
+    const interval = difference < (1000 * 60 * 60) ? 1000 : 10000; // 1s if < 1h, 10s otherwise
+    const timer = setInterval(calculateTimeLeft, interval);
     return () => clearInterval(timer);
   }, [targetDate]);
 

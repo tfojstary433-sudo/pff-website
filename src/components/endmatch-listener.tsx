@@ -143,7 +143,7 @@ export function EndMatchListener() {
       }
     };
 
-    const interval = setInterval(checkForNewMatches, 15000);
+    const interval = setInterval(checkForNewMatches, 60000); // Increased from 15s to 60s
     checkForNewMatches();
     
     return () => clearInterval(interval);
