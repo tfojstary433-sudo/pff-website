@@ -10,7 +10,8 @@ interface WidgetProps {
 }
 
 export function CompactLeagueTable({ setActiveTab, setIsMinimized }: WidgetProps) {
-  const standings = defaultStandings.slice(0, 5); // Top 5
+  const { standings: apiStandings } = useMatchStats();
+  const standings = (apiStandings.length > 0 ? apiStandings.map((s: any, idx) => ({ ...s, position: (s as any).position || idx + 1 })) : defaultStandings).slice(0, 5); // Top 5 from API or fallback
   
   const handleFullTable = () => {
     setActiveTab('tabela');

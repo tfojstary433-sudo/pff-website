@@ -2,7 +2,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 local CONFIG = {
-    BACKEND_URL = "https://match-tracker-node--motorola4interi.replit.app",
+    BACKEND_URL = "https://polskafederacjafutbolu.netlify.app",
     MATCH_ID = 1,
     UPDATE_INTERVAL = 0.5
 }

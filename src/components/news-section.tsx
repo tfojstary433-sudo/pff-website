@@ -3,8 +3,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { newsArticles, sneakPeeks } from '@/lib/data';
-import { SponsorsSidebar, RecentResultsSidebar } from './table-sidebars';
-import { LeagueTable } from './league-table';
 
 interface Article {
   id: number;
@@ -139,13 +137,8 @@ export function NewsSection() {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-8">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <h3 className="text-lg font-black text-white uppercase tracking-tight mb-4">Tabela</h3>
-              <LeagueTable isInTab={true} />
-            </div>
-            <RecentResultsSidebar />
-            <SponsorsSidebar />
+          <div className="lg:col-span-1">
+            {/* Empty sidebar for now */}
           </div>
         </div>
 

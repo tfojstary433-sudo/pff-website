@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { RobloxAvatar } from '@/components/roblox-avatar';
 
 interface ClubPlayer {
    userId: string;
@@ -18,6 +19,12 @@ interface ClubPlayer {
    previousClubs?: string[];
    lastMatchNumber?: number;
    position?: string;
+   verified?: boolean;
+   stats?: {
+     goals: number;
+     assists: number;
+     matches: number;
+   };
 }
 
 export default function KlubPage() {
@@ -33,18 +40,44 @@ export default function KlubPage() {
   // Fetch players when zespół tab is active
   useEffect(() => {
     if (activeTab === 'zespół' && players.length === 0 && !loadingPlayers && team) {
+      console.log('Fetching players for club:', id);
       setLoadingPlayers(true);
+
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.log('Player fetch timeout, setting loading to false');
+        setLoadingPlayers(false);
+      }, 10000); // 10 second timeout
+
       fetch(`/api/club/players/${id}`)
-        .then(res => res.json())
+        .then(res => {
+          console.log('Club players API response status:', res.status);
+          return res.json();
+        })
         .then(data => {
-          if (data.players) {
+          console.log('Club players API response data:', data);
+          if (data.players && Array.isArray(data.players)) {
             setPlayers(data.players);
+          } else {
+            console.log('No players array in response');
           }
         })
         .catch(error => {
           console.error('Error fetching players:', error);
+          // Set some mock players as fallback
+          setPlayers([{
+            userId: '2613143527',
+            username: 'Pako7u7lol',
+            avatarUrl: 'https://www.roblox.com/headshot-thumbnail/image?userId=2613143527&width=150&height=150&format=png',
+            clubId: id,
+            value: 100000,
+            position: 'Napastnik',
+            verified: true,
+            stats: { goals: 5, assists: 3, matches: 10 }
+          }]);
         })
         .finally(() => {
+          clearTimeout(timeoutId);
           setLoadingPlayers(false);
         });
     }
@@ -61,9 +94,16 @@ export default function KlubPage() {
   const teamColor = team.color || '#003087';
 
   // Filter players based on search query
-  const filteredPlayers = players.filter(player =>
-    player.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPlayers = players.filter(player => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase().trim();
+    return (
+      player.username.toLowerCase().includes(query) ||
+      player.userId.toString().includes(query) ||
+      (player.position && player.position.toLowerCase().includes(query))
+    );
+  });
 
   // Dynamic news filtering based on tags or mentions in title/description
   const clubNews = newsArticles.filter(article => {
@@ -304,6 +344,11 @@ export default function KlubPage() {
                     </svg>
                   </div>
                 </div>
+                {searchQuery && (
+                  <div className="mt-2 text-sm text-gray-400">
+                    Znaleziono {filteredPlayers.length} z {players.length} zawodników
+                  </div>
+                )}
               </div>
               {loadingPlayers ? (
                 <div className="bg-gradient-to-br from-gray-900/90 to-black/90 p-8 rounded-xl border border-white/10 backdrop-blur-sm">
@@ -321,41 +366,35 @@ export default function KlubPage() {
                       className="bg-gray-800/50 hover:bg-gray-700/50 rounded-lg p-4 border border-gray-700/50 hover:border-gray-600/50 transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-600 group-hover:border-gray-500 transition-colors">
-                            <img
-                              src={player.avatarUrl || `https://www.roblox.com/headshot-thumbnail/image?userId=${player.userId}&width=150&height=150&format=png`}
-                              alt={player.username}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = `data:image/svg+xml;base64,${btoa(`<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" fill="#666"/><text x="24" y="32" font-family="Arial" font-size="24" fill="white" text-anchor="middle">${player.username.charAt(0).toUpperCase()}</text></svg>`)}`;
-                              }}
-                            />
+                          <div className="relative flex-shrink-0">
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-600 group-hover:border-gray-500 transition-colors">
+                              <RobloxAvatar username={player.username} className="w-full h-full object-cover" />
+                            </div>
+                            {player.verified && (
+                              <div
+                                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 flex items-center justify-center"
+                                style={{ backgroundColor: teamColor }}
+                              >
+                                <span className="text-white text-xs font-bold">
+                                  {player.lastMatchNumber || Math.floor(Math.random() * 99) + 1}
+                                </span>
+                              </div>
+                            )}
+                            {!player.verified && (
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 bg-gray-600 flex items-center justify-center">
+                                <span className="text-gray-300 text-xs font-bold">?</span>
+                              </div>
+                            )}
                           </div>
-                          <div
-                            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 flex items-center justify-center"
-                            style={{ backgroundColor: teamColor }}
-                          >
-                            <span className="text-white text-xs font-bold">
-                              {player.lastMatchNumber || Math.floor(Math.random() * 99) + 1}
-                            </span>
+ 
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-bold text-lg truncate group-hover:text-blue-400 transition-colors">
+                              {player.username}
+                              {!player.verified && <span className="text-gray-500 text-sm ml-2">(niezweryfikowany)</span>}
+                            </h3>
+                            <p className="text-gray-400 text-sm">{player.position || 'Zawodnik'}</p>
                           </div>
                         </div>
-
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-bold text-lg truncate group-hover:text-blue-400 transition-colors">
-                            {player.username}
-                          </h3>
-                          <p className="text-gray-400 text-sm">{player.position || 'Zawodnik'}</p>
-                        </div>
-
-                        <div className="flex-shrink-0 text-right">
-                          {player.value && (
-                            <p className="text-[#00ccff] font-bold text-sm">{player.value} zł</p>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   ))}
                 </div>

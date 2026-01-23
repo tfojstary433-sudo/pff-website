@@ -5,7 +5,7 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 -- Konfiguracja
-local API_URL = "https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/endmatch"
+local API_URL = "https://polskafederacjafutbolu.netlify.app/api/endmatch"
 local MATCH_DATA = {
 	matchId = "",
 	homeTeamId = "",

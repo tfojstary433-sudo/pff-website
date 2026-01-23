@@ -6,9 +6,38 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
 import { matches, standings } from '@/lib/data';
 import { useMatchStats } from '@/lib/useMatchStats';
+import { API_ENDPOINTS } from '@/lib/constants';
 
 import { LeagueTable } from './league-table';
 import { Statistics } from './statistics';
+
+// Helper function to get team object from name
+function getTeamFromName(teamName: string) {
+  const teamMapping: Record<string, any> = {
+    'Zagłębie Lubin': { id: '4', name: 'Zagłębie Lubin', shortName: 'ZAG', logo: 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png', color: '#f97316' },
+    'Legia Warszawa': { id: '2', name: 'Legia Warszawa', shortName: 'LEG', logo: 'https://ext.same-assets.com/1250577607/695801781.png', color: '#dc2626' },
+    'Arka Gdynia': { id: '1', name: 'Arka Gdynia', shortName: 'ARK', logo: 'https://ext.same-assets.com/1250577607/451783410.png', color: '#FFD700' },
+    'Lech Poznań': { id: '3', name: 'Lech Poznań', shortName: 'LEC', logo: 'https://ext.same-assets.com/1250577607/3317158738.png', color: '#1e40af' },
+    'Lechia Gdańsk': { id: '5', name: 'Lechia Gdańsk', shortName: 'LGD', logo: 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', color: '#3b82f6' },
+    'Zawisza Bydgoszcz': { id: '12', name: 'Zawisza Bydgoszcz', shortName: 'ZAW', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png', color: '#f97316' },
+    'Wisła Kraków': { id: '13', name: 'Wisła Kraków', shortName: 'WIS', logo: 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg', color: '#dc2626' },
+    'Motor Lublin': { id: '9', name: 'Motor Lublin', shortName: 'MOT', logo: 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png', color: '#facc15' },
+    'Pogoń Szczecin': { id: '10', name: 'Pogoń Szczecin', shortName: 'POG', logo: 'https://ext.same-assets.com/1250577607/3079565559.png', color: '#1e3a8a' },
+    'Olimpia Elbląg': { id: '8', name: 'Olimpia Elbląg', shortName: 'OLI', logo: 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png', color: '#00ccff' },
+    'Chojniczanka Chojnice': { id: '11', name: 'Chojniczanka Chojnice', shortName: 'CHO', logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png', color: '#3b82f6' },
+    'Grom Nowy Staw': { id: '6', name: 'Grom Nowy Staw', shortName: 'GRO', logo: 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png', color: '#15803d' },
+    'Sokół Olsztyn': { id: '14', name: 'Sokół Olsztyn', shortName: 'SOK', logo: 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png', color: '#00ccff' },
+    'Unia Skierniewice': { id: '7', name: 'Unia Skierniewice', shortName: 'UNI', logo: 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png', color: '#facc15' }
+  };
+
+  return teamMapping[teamName] || {
+    id: 'UNK',
+    name: teamName,
+    shortName: teamName.substring(0, 3).toUpperCase(),
+    logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+    color: '#3b82f6'
+  };
+}
 
 interface LiveMatchData {
   id: string;
@@ -52,6 +81,8 @@ export function ScheduleTableOverlay({
   const [roundIndex, setRoundIndex] = useState(0);
   const [liveMatches, setLiveMatches] = useState<LiveMatchData[]>([]);
   const [loadingLive, setLoadingLive] = useState(false);
+  const [fixtures, setFixtures] = useState<any[]>([]);
+  const [loadingFixtures, setLoadingFixtures] = useState(false);
 
   useEffect(() => {
     const fetchLiveMatches = async () => {
@@ -69,9 +100,9 @@ export function ScheduleTableOverlay({
         
         for (const apiMatch of apiMatchesList) {
           if (apiMatch.isActive || apiMatch.status === 'active') {
-            const matchInSchedule = matches.find(m => 
-              (m.homeTeam.name === apiMatch.teamA || m.homeTeam.shortName === apiMatch.teamA) &&
-              (m.awayTeam.name === apiMatch.teamB || m.awayTeam.shortName === apiMatch.teamB)
+            const matchInSchedule = fixtures.find(m =>
+              (m.homeTeam?.name === apiMatch.teamA || m.homeTeam?.shortName === apiMatch.teamA) &&
+              (m.awayTeam?.name === apiMatch.teamB || m.awayTeam?.shortName === apiMatch.teamB)
             );
             
             if (matchInSchedule) {
@@ -110,9 +141,56 @@ export function ScheduleTableOverlay({
     return () => clearInterval(interval);
   }, []);
 
-  const allRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => Number(a) - Number(b));
-  const currentRound = allRounds[roundIndex];
-  const roundMatches = matches.filter(m => m.round === currentRound).slice(0, 4);
+  useEffect(() => {
+    const fetchFixtures = async () => {
+      setLoadingFixtures(true);
+      try {
+        console.log('Fetching fixtures from API...');
+        const response = await fetch(API_ENDPOINTS.SCHEDULE);
+        console.log('Fixtures API response:', response.status, response.statusText);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fixtures data:', data);
+          const fixturesData = data.fixtures || [];
+          console.log('Fixtures array length:', fixturesData.length);
+          if (Array.isArray(fixturesData) && fixturesData.length > 0) {
+            // Map API data to expected format
+            const mappedFixtures = fixturesData.map(fixture => ({
+              id: fixture.id.toString(),
+              round: fixture.round,
+              date: fixture.date,
+              homeTeam: getTeamFromName(fixture.teamA),
+              awayTeam: getTeamFromName(fixture.teamB),
+              homeScore: fixture.scoreA,
+              awayScore: fixture.scoreB,
+              stadium: "Stadion",
+              category: "Liga",
+              status: (fixture.scoreA === 0 && fixture.scoreB === 0 ? 'upcoming' : 'finished') as 'upcoming' | 'finished'
+            }));
+            console.log('Mapped fixtures:', mappedFixtures.slice(0, 3));
+            setFixtures(mappedFixtures);
+          } else {
+            console.log('No fixtures data or empty array');
+            setFixtures([]);
+          }
+        } else {
+          console.error('Failed to fetch fixtures, status:', response.status);
+          setFixtures([]);
+        }
+      } catch (error) {
+        console.error('Error fetching fixtures:', error);
+        setFixtures([]);
+      } finally {
+        setLoadingFixtures(false);
+      }
+    };
+
+    fetchFixtures();
+  }, []);
+
+  const allRounds = fixtures.length > 0 ? [...new Set(fixtures.map(m => m.round || m.matchday || 1))].sort((a, b) => Number(a) - Number(b)) : [1];
+  const currentRound = allRounds[roundIndex] || 1;
+  const roundMatches = fixtures.filter(m => (m.round || m.matchday || 1) === currentRound);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -226,9 +304,9 @@ export function ScheduleTableOverlay({
             ) : liveMatches.length > 0 ? (
               <div className="divide-y divide-gray-700">
                 {liveMatches.map((match) => {
-                  const matchData = matches.find(m => 
-                    (m.homeTeam.shortName === match.homeTeam.shortName) &&
-                    (m.awayTeam.shortName === match.awayTeam.shortName)
+                  const matchData = fixtures.find(m =>
+                    (m.homeTeam?.shortName === match.homeTeam.shortName) &&
+                    (m.awayTeam?.shortName === match.awayTeam.shortName)
                   );
                   const homePos = matchData ? standings.find(s => s.team?.id === matchData.homeTeam.id)?.position || '-' : '-';
                   const awayPos = matchData ? standings.find(s => s.team?.id === matchData.awayTeam.id)?.position || '-' : '-';
@@ -342,30 +420,30 @@ export function ScheduleTableOverlay({
 
           {/* Matches */}
           <div className="divide-y divide-white/5">
-            {roundMatches.map((match) => {
-              const homePos = standings.find(s => s.team?.id === match.homeTeam.id)?.position || '-';
-              const awayPos = standings.find(s => s.team?.id === match.awayTeam.id)?.position || '-';
-              
+            {roundMatches.map((match, index) => {
+              const homePos = standings.find(s => s.team?.id === match.homeTeam?.id)?.position || '-';
+              const awayPos = standings.find(s => s.team?.id === match.awayTeam?.id)?.position || '-';
+
               return (
-                <Link href={`/mecz/${match.id}`} key={match.id} className="block group">
+                <Link href={`/mecz/${match.id || index}`} key={match.id || index} className="block group">
                   <div className="px-4 py-2 bg-black/40 text-gray-400 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
                     <div className="w-1 h-1 bg-[#00ccff] rounded-full" />
-                    {formatDate(match.date)} • {formatTime(match.date)}
+                    {match.date ? formatDate(match.date) + ' • ' + formatTime(match.date) : 'Data nieznana'}
                   </div>
                   <div 
                     className="relative px-4 py-6 bg-gradient-to-br from-transparent to-black/40 hover:from-white/5 hover:to-white/10 transition-all cursor-pointer"
                   >
                     {/* Gradient overlays */}
-                    <div 
+                    <div
                       className="absolute left-0 top-0 bottom-0 w-20 opacity-10 group-hover:opacity-20 transition-opacity"
                       style={{
-                        background: `linear-gradient(to right, ${match.homeTeam.color || '#1f2937'}, transparent)`
+                        background: `linear-gradient(to right, ${match.homeTeam?.color || '#1f2937'}, transparent)`
                       }}
                     />
-                    <div 
+                    <div
                       className="absolute right-0 top-0 bottom-0 w-20 opacity-10 group-hover:opacity-20 transition-opacity"
                       style={{
-                        background: `linear-gradient(to left, ${match.awayTeam.color || '#1f2937'}, transparent)`
+                        background: `linear-gradient(to left, ${match.awayTeam?.color || '#1f2937'}, transparent)`
                       }}
                     />
 
@@ -373,20 +451,20 @@ export function ScheduleTableOverlay({
                       {/* Home Team */}
                       <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                         <div className="relative">
-                          <div 
+                          <div
                             className="absolute inset-0 blur-lg opacity-30"
-                            style={{ backgroundColor: match.homeTeam.color }}
+                            style={{ backgroundColor: match.homeTeam?.color || '#1f2937' }}
                           />
                           <Image
-                            src={match.homeTeam.logo}
-                            alt={match.homeTeam.name}
+                            src={match.homeTeam?.logo || '/default-logo.png'}
+                            alt={match.homeTeam?.name || 'Home Team'}
                             width={32}
                             height={32}
                             className="relative z-10 drop-shadow-lg"
                           />
                         </div>
                         <span className="text-[9px] font-black text-white uppercase text-center leading-tight truncate w-full">
-                          {match.homeTeam.shortName}
+                          {match.homeTeam?.shortName || match.homeTeam?.name || 'Home'}
                         </span>
                         <span className="text-[10px] font-black text-gray-500">#{homePos}</span>
                       </div>
@@ -394,19 +472,19 @@ export function ScheduleTableOverlay({
                       {/* Time/Score */}
                       <div className="flex flex-col items-center gap-1 px-3">
                         <div className="bg-gradient-to-br from-gray-800 to-black border border-white/10 px-3 py-1.5 rounded-lg shadow-xl">
-                          {finishedMatches[match.id] ? (
+                          {finishedMatches[match.id || index] ? (
                             <span className="text-base font-black text-green-400 tracking-tight">
-                              {finishedMatches[match.id].homeScore}:{finishedMatches[match.id].awayScore}
+                              {finishedMatches[match.id || index].homeScore}:{finishedMatches[match.id || index].awayScore}
                             </span>
                           ) : (
-                            <span className="text-base font-black text-white tracking-tight">{formatTime(match.date)}</span>
+                            <span className="text-base font-black text-white tracking-tight">{match.date ? formatTime(match.date) : 'TBD'}</span>
                           )}
                         </div>
                         <div className="flex flex-col items-center">
-                          {finishedMatches[match.id] ? (
+                          {finishedMatches[match.id || index] ? (
                             <span className="text-[8px] font-black text-green-400 uppercase">ZAKOŃCZONY</span>
                           ) : (
-                            <span className="text-[8px] font-black text-[#00ccff] italic uppercase">{match.stadium?.split(' ')[0]} {match.stadium?.split(' ')[1]}...</span>
+                            <span className="text-[8px] font-black text-[#00ccff] italic uppercase">{match.stadium ? match.stadium.split(' ')[0] + ' ' + (match.stadium.split(' ')[1] || '') + '...' : 'Stadion'}</span>
                           )}
                           <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-600">
                             <span>#{homePos}</span>
@@ -419,20 +497,20 @@ export function ScheduleTableOverlay({
                       {/* Away Team */}
                       <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                         <div className="relative">
-                          <div 
+                          <div
                             className="absolute inset-0 blur-lg opacity-30"
-                            style={{ backgroundColor: match.awayTeam.color }}
+                            style={{ backgroundColor: match.awayTeam?.color || '#1f2937' }}
                           />
                           <Image
-                            src={match.awayTeam.logo}
-                            alt={match.awayTeam.name}
+                            src={match.awayTeam?.logo || '/default-logo.png'}
+                            alt={match.awayTeam?.name || 'Away Team'}
                             width={32}
                             height={32}
                             className="relative z-10 drop-shadow-lg"
                           />
                         </div>
                         <span className="text-[9px] font-black text-white uppercase text-center leading-tight truncate w-full">
-                          {match.awayTeam.shortName}
+                          {match.awayTeam?.shortName || match.awayTeam?.name || 'Away'}
                         </span>
                         <span className="text-[10px] font-black text-gray-500">#{awayPos}</span>
                       </div>
@@ -440,7 +518,7 @@ export function ScheduleTableOverlay({
                     
                     {/* Category Banner */}
                     <div className="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-[#00ccff]/10 rounded-full border border-[#00ccff]/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[7px] font-black text-[#00ccff] tracking-widest uppercase">{match.category}</span>
+                      <span className="text-[7px] font-black text-[#00ccff] tracking-widest uppercase">{match.category || 'Mecz'}</span>
                     </div>
                   </div>
                 </Link>

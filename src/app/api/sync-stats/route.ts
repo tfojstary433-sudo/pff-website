@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fetchExternalLeagueTable, fetchExternalPlayerStats } from '@/lib/externalApi';
 import { Standing, PlayerStat } from '@/lib/data';
+import { API_ENDPOINTS } from '@/lib/constants';
 
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
 
@@ -24,8 +25,8 @@ export async function POST(request: NextRequest) {
 
     // Fetch data directly from Replit API
     const [tableRes, playersRes] = await Promise.all([
-      fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/table'),
-      fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/stats')
+      fetch(API_ENDPOINTS.EXTERNAL_TABLE),
+      fetch(API_ENDPOINTS.EXTERNAL_STATS)
     ]);
 
     let externalTable: any[] = [];

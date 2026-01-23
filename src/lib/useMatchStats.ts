@@ -2,49 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { teams } from './data';
+import { getAllPlayerStats } from './firebase';
+import { API_ENDPOINTS } from './constants';
 
 // Helper functions for team logos and colors
 function getTeamLogo(teamId: string): string {
-  const teamLogos: Record<string, string> = {
-    'ARK': 'https://ext.same-assets.com/1250577607/451783410.png',
-    'LEG': 'https://ext.same-assets.com/1250577607/695801781.png',
-    'LEC': 'https://ext.same-assets.com/1250577607/3317158738.png',
-    'LGD': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png',
-    'POG': 'https://ext.same-assets.com/1250577607/3079565559.png',
-    'ZAW': 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png',
-    'OLI': 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png',
-    'UNI': 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png',
-    'MOT': 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png',
-    'SOK': 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png',
-    'WIS': 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg',
-    'GRO': 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png',
-    'CHO': 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png',
-    'ZAG': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png',
-    'LEC_0': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', // Lechia Gdańsk
-    'LEC_3': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', // Lechia Gdańsk
-    'LEC_1': 'https://i.ibb.co/TB027G07/czarnepff-1.png' // Placeholder
-  };
-  return teamLogos[teamId] || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
+  const team = teams.find(t => t.id === teamId || t.shortName === teamId);
+  return team?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
 }
 
 function getTeamColor(teamId: string): string {
-  const teamColors: Record<string, string> = {
-    'ARK': '#FFD700',
-    'LEG': '#dc2626',
-    'LEC': '#1e40af',
-    'LGD': '#3b82f6',
-    'POG': '#1e3a8a',
-    'ZAW': '#f97316',
-    'OLI': '#00ccff',
-    'UNI': '#facc15',
-    'MOT': '#facc15',
-    'SOK': '#00ccff',
-    'WIS': '#dc2626',
-    'GRO': '#15803d',
-    'CHO': '#3b82f6',
-    'ZAG': '#f97316'
-  };
-  return teamColors[teamId] || '#3b82f6';
+  const team = teams.find(t => t.id === teamId || t.shortName === teamId);
+  return team?.color || '#3b82f6';
 }
 
 export interface PlayerStats {
@@ -114,82 +83,114 @@ export function useMatchStats() {
 
   const fetchFromServer = async () => {
     try {
-      // Fetch data directly from Replit API
-      const [tableRes, playersRes] = await Promise.all([
-        fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/table'),
-        fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/stats')
+      // Fetch from external APIs and Firebase
+      const [playersRes, tableRes, firebaseStats] = await Promise.all([
+        fetch(API_ENDPOINTS.STATS),
+        fetch(API_ENDPOINTS.TABLE),
+        getAllPlayerStats().catch(() => ({}))
       ]);
 
-      if (tableRes.ok) {
-        const table = await tableRes.json();
-        if (Array.isArray(table)) {
-          // Track used team IDs to avoid duplicates
-          const usedIds = new Set<string>();
+      let combinedPlayers: PlayerStats[] = [];
 
-          const formattedStandings = table.map((t: any, index: number) => {
-            const goalsFor = Math.max(0, t.goalsFor || 0);
-            const goalsAgainst = Math.max(0, t.goalsAgainst || 0);
-            const goalDifference = t.goalDifference !== undefined ? t.goalDifference : (goalsFor - goalsAgainst);
+      console.log('Players API response:', playersRes.status, playersRes.statusText);
+      if (playersRes.ok) {
+        const data = await playersRes.json();
+        const playersData = data.players || [];
+        if (Array.isArray(playersData) && playersData.length > 0) {
+          combinedPlayers = playersData.map(player => ({
+            playerId: player.id,
+            name: player.name || player.username,
+            teamId: player.teamId || 'UNK',
+            goals: player.goals || 0,
+            assists: player.assists || 0,
+            yellowCards: player.yellowCards || 0,
+            redCards: player.redCards || 0,
+            cleanSheets: player.cleanSheets || 0,
+            points: (player.goals || 0) + (player.assists || 0)
+          }));
+        }
+      }
 
-            // Ensure unique team ID
-            let teamId = t.team?.id || `team_${index}`;
-            if (usedIds.has(teamId)) {
-              teamId = `${teamId}_${index}`;
+      // Merge with Firebase stats
+      if (firebaseStats && Object.keys(firebaseStats).length > 0) {
+        Object.entries(firebaseStats).forEach(([id, stats]: [string, any]) => {
+          const existingPlayer = combinedPlayers.find(p => p.playerId.toString() === id || p.name === stats.name);
+          if (existingPlayer) {
+            existingPlayer.goals = Math.max(existingPlayer.goals, stats.goals || 0);
+            existingPlayer.assists = Math.max(existingPlayer.assists, stats.assists || 0);
+            existingPlayer.yellowCards = Math.max(existingPlayer.yellowCards, stats.yellowCards || 0);
+            existingPlayer.redCards = Math.max(existingPlayer.redCards, stats.redCards || 0);
+            existingPlayer.cleanSheets = Math.max(existingPlayer.cleanSheets, stats.cleanSheets || 0);
+            existingPlayer.points = existingPlayer.goals + existingPlayer.assists;
+            if (stats.teamId && (existingPlayer.teamId === 'UNK' || !existingPlayer.teamId)) {
+              existingPlayer.teamId = stats.teamId;
             }
-            usedIds.add(teamId);
+          } else {
+            combinedPlayers.push({
+              playerId: parseInt(id) || 0,
+              name: stats.name || `Gracz ${id}`,
+              teamId: stats.teamId || 'UNK',
+              goals: stats.goals || 0,
+              assists: stats.assists || 0,
+              yellowCards: stats.yellowCards || 0,
+              redCards: stats.redCards || 0,
+              cleanSheets: stats.cleanSheets || 0,
+              points: (stats.goals || 0) + (stats.assists || 0)
+            });
+          }
+        });
+      }
+
+      if (combinedPlayers.length > 0) {
+        setTopScorers(combinedPlayers);
+        localStorage.setItem('topScorers', JSON.stringify(combinedPlayers));
+      }
+
+      console.log('Table API response:', tableRes.status, tableRes.statusText);
+      if (tableRes.ok) {
+        const data = await tableRes.json();
+        console.log('Table data:', data);
+        const tableData = data.standings || [];
+        if (Array.isArray(tableData) && tableData.length > 0) {
+          // Map API data to expected format
+          const mappedStandings = tableData.map((standing, index) => {
+            // Map team ID to short name for logos
+            const teamIdMap: Record<string, string> = {
+              '4': 'ZAG', '2': 'LEG', '1': 'ARK', '3': 'LEC', '5': 'LGD',
+              '12': 'ZAW', '13': 'WIS', '9': 'MOT', '10': 'POG', '8': 'OLI',
+              '11': 'CHO', '6': 'GRO', '14': 'SOK', '7': 'UNI'
+            };
+            const shortName = teamIdMap[standing.id.toString()] || standing.name.substring(0, 3).toUpperCase();
 
             return {
-              teamId,
-              played: Math.max(0, t.played || 0),
-              won: Math.max(0, t.won || 0),
-              drawn: Math.max(0, t.drawn || 0),
-              lost: Math.max(0, t.lost || 0),
-              goalsFor,
-              goalsAgainst,
-              goalDifference, // Allow negative values for goal difference
-              points: Math.max(0, t.points || 0),
+              teamId: standing.id.toString(),
+              played: standing.played,
+              won: standing.won,
+              drawn: standing.drawn,
+              lost: standing.lost,
+              goalsFor: standing.goalsFor,
+              goalsAgainst: standing.goalsAgainst,
+              goalDifference: standing.goalsFor - standing.goalsAgainst,
+              points: standing.points,
+              position: index + 1,
               team: {
-                id: teamId,
-                name: t.team?.name || teamId,
-                shortName: t.team?.shortName || teamId.substring(0, 3),
-                logo: getTeamLogo(teamId),
-                color: getTeamColor(teamId)
+                id: standing.id.toString(),
+                name: standing.name,
+                shortName: shortName,
+                logo: getTeamLogo(shortName),
+                color: getTeamColor(shortName)
               }
             };
           });
-          setStandings(formattedStandings);
-          localStorage.setItem('standings', JSON.stringify(formattedStandings));
-          console.log('✅ Loaded standings from Replit API:', formattedStandings);
+          setStandings(mappedStandings);
+          localStorage.setItem('standings', JSON.stringify(mappedStandings));
         }
       }
 
-      if (playersRes.ok) {
-        const players = await playersRes.json();
-        if (Array.isArray(players) && players.length > 0) {
-          const formattedPlayers = players.map((p: any) => ({
-            playerId: p.playerId || p.id || Math.random(),
-            name: p.name || p.playerName || 'Unknown Player',
-            teamId: p.teamId || p.team?.id || 'unknown',
-            goals: Math.max(0, p.goals || 0),
-            assists: Math.max(0, p.assists || 0),
-            points: Math.max(0, (p.goals || 0) + (p.assists || 0)),
-            cleanSheets: Math.max(0, p.cleanSheets || 0),
-            yellowCards: Math.max(0, p.yellowCards || p.yellow_cards || 0),
-            redCards: Math.max(0, p.redCards || p.red_cards || 0),
-            avatarUrl: p.avatarUrl || p.avatar
-          }));
-          setTopScorers(formattedPlayers);
-          localStorage.setItem('topScorers', JSON.stringify(formattedPlayers));
-          console.log('✅ Loaded players from Replit API:', formattedPlayers);
-        } else {
-          // If no players, set empty array
-          setTopScorers([]);
-          localStorage.setItem('topScorers', JSON.stringify([]));
-        }
-      }
+      // For now, keep loading local data as fallback
+      loadLocalData();
     } catch (error) {
-      console.error('Error fetching from Replit API:', error);
-      // Fallback to local data if API fails
+      console.error('Error fetching from external APIs:', error);
       loadLocalData();
     }
   };
@@ -201,10 +202,38 @@ export function useMatchStats() {
 
       if (standingsData) {
         setStandings(JSON.parse(standingsData));
+      } else {
+        // Fallback to defaults from data.ts
+        import('./data').then(data => {
+          if (data.standings) {
+            setStandings(data.standings.map((s, idx) => ({
+              ...s,
+              teamId: s.team.id,
+              position: idx + 1
+            })));
+          }
+        });
       }
 
       if (playersData) {
         setTopScorers(JSON.parse(playersData));
+      } else {
+        // Fallback to mockPlayersData
+        import('./data').then(data => {
+          if (data.mockPlayersData) {
+            setTopScorers(data.mockPlayersData.map(p => ({
+              playerId: p.playerId,
+              name: p.name,
+              teamId: p.teamId,
+              goals: p.goals,
+              assists: p.assists,
+              points: p.goals + p.assists,
+              cleanSheets: p.cleanSheets || 0,
+              yellowCards: p.yellowCards || 0,
+              redCards: p.redCards || 0
+            })));
+          }
+        });
       }
     } catch (error) {
       console.error('Error loading local data:', error);

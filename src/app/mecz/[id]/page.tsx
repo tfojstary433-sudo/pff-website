@@ -464,11 +464,26 @@ export default function MatchDetail() {
     };
     loadFinished();
 
-    // For now, don't fetch API data since it's not available
-    // Just use local match data
-    setLoading(false);
-    setError(null);
-  }, [id]);
+    const fetchMatchData = async () => {
+      if (!isMatchActive) return;
+      
+      try {
+        const response = await fetch(`/api/matches/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setApiData(data);
+        }
+      } catch (err) {
+        console.error('Error fetching match data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMatchData();
+    const interval = setInterval(fetchMatchData, 5000);
+    return () => clearInterval(interval);
+  }, [id, isMatchActive]);
 
   useEffect(() => {
     if (isMatchActive && !hasAutoSwitched.current) {

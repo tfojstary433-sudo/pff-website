@@ -1,4 +1,5 @@
 import { Standing, PlayerStat, Team } from './data';
+import { API_ENDPOINTS } from './constants';
 
 // Cache for API responses
 interface CacheEntry {
@@ -51,7 +52,7 @@ async function getCachedData(url: string): Promise<any> {
 export async function fetchExternalLeagueTable(): Promise<Standing[]> {
   try {
     console.log('🔄 Fetching external league table...');
-    const data = await getCachedData('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/table');
+    const data = await getCachedData(API_ENDPOINTS.EXTERNAL_TABLE);
     console.log('📊 Raw external table data:', data);
 
     // Map external data to our Standing format
@@ -85,7 +86,7 @@ export async function fetchExternalLeagueTable(): Promise<Standing[]> {
 export async function fetchExternalPlayerStats(): Promise<PlayerStat[]> {
   try {
     console.log('🔄 Fetching external player stats...');
-    const data = await getCachedData('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/external/stats');
+    const data = await getCachedData(API_ENDPOINTS.EXTERNAL_STATS);
     console.log('📊 Raw external player stats:', data);
 
     // Map external data to our PlayerStat format

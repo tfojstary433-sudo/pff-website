@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { teams } from '@/lib/data';
+import { RobloxAvatar } from './roblox-avatar';
 
 export function Navbar() {
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -79,46 +80,53 @@ export function Navbar() {
       return;
     }
 
-    const results: any[] = [];
+    const fetchSearchResults = async () => {
+      const results: any[] = [];
 
-    // Search teams
-    const matchingTeams = teams.filter(team =>
-      team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.shortName?.toLowerCase().includes(searchQuery.toLowerCase())
-    ).slice(0, 3);
+      // Search teams
+      const matchingTeams = teams.filter(team =>
+        team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        team.shortName?.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 3);
 
-    matchingTeams.forEach(team => {
-      results.push({
-        type: 'team',
-        id: team.id,
-        name: team.name,
-        logo: team.logo,
-        href: `/klub/${team.id}`
+      matchingTeams.forEach(team => {
+        results.push({
+          type: 'team',
+          id: team.id,
+          name: team.name,
+          logo: team.logo,
+          href: `/klub/${team.id}`
+        });
       });
-    });
 
-    // Search players (mock for now)
-    const mockPlayers = [
-      { username: 'Player1', avatarUrl: 'https://www.roblox.com/headshot-thumbnail/image?userId=123&width=150&height=150&format=png' },
-      { username: 'Player2', avatarUrl: 'https://www.roblox.com/headshot-thumbnail/image?userId=456&width=150&height=150&format=png' },
-      { username: 'TestPlayer', avatarUrl: 'https://www.roblox.com/headshot-thumbnail/image?userId=789&width=150&height=150&format=png' }
-    ];
+      // Search players
+      try {
+        console.log('Searching players with query:', searchQuery);
+        const playerResponse = await fetch(`/api/players/search?q=${encodeURIComponent(searchQuery)}`);
+        console.log('Player search response status:', playerResponse.status);
+        if (playerResponse.ok) {
+          const players = await playerResponse.json();
+          console.log('Player search results:', players);
+          players.forEach((player: any) => {
+            results.push({
+              type: 'player',
+              id: player.userId,
+              name: player.username,
+              club: player.clubName || player.clubId,
+              avatarUrl: player.avatarUrl,
+              href: `/gracz/${player.username}`
+            });
+          });
+        }
+      } catch (error) {
+        console.error('Error searching players:', error);
+      }
 
-    const matchingPlayers = mockPlayers.filter(player =>
-      player.username.toLowerCase().includes(searchQuery.toLowerCase())
-    ).slice(0, 3);
+      setSearchResults(results);
+      setSearchOpen(results.length > 0);
+    };
 
-    matchingPlayers.forEach(player => {
-      results.push({
-        type: 'player',
-        username: player.username,
-        avatarUrl: player.avatarUrl,
-        href: `/gracz/${player.username}`
-      });
-    });
-
-    setSearchResults(results);
-    setSearchOpen(results.length > 0);
+    fetchSearchResults();
   }, [searchQuery]);
 
   const navLinks = [
@@ -188,34 +196,38 @@ export function Navbar() {
                     >
                       {result.type === 'team' ? (
                         <>
-                          <img
-                            src={result.logo}
-                            alt={result.name}
-                            className="w-8 h-8 object-contain"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = '/placeholder-logo.png';
-                            }}
-                          />
+                          <div className="w-10 h-10 bg-white/5 rounded-lg p-1.5 flex items-center justify-center">
+                            <img
+                              src={result.logo}
+                              alt={result.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder-logo.png';
+                              }}
+                            />
+                          </div>
                           <div>
-                            <div className="text-white font-bold">{result.name}</div>
-                            <div className="text-gray-400 text-sm">Klub</div>
+                            <div className="text-white font-black italic uppercase text-sm tracking-tight">{result.name}</div>
+                            <div className="text-[#00ccff] text-[10px] font-black uppercase tracking-widest">Klub</div>
                           </div>
                         </>
                       ) : (
                         <>
-                          <img
-                            src={result.avatarUrl}
-                            alt={result.username}
-                            className="w-8 h-8 rounded-full border border-gray-600"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = `data:image/svg+xml;base64,${btoa(`<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" fill="#666"/><text x="16" y="22" font-family="Arial" font-size="16" fill="white" text-anchor="middle">${result.username.charAt(0).toUpperCase()}</text></svg>`)}`;
-                            }}
-                          />
+                          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#00ccff]/30 bg-black flex-shrink-0">
+                            <RobloxAvatar
+                              username={result.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                           <div>
-                            <div className="text-white font-bold">{result.username}</div>
-                            <div className="text-gray-400 text-sm">Zawodnik</div>
+                            <div className="text-white font-black italic uppercase text-sm tracking-tight">{result.name}</div>
+                            <div className="flex flex-col">
+                              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest leading-tight">Zawodnik</span>
+                              <span className={`text-[9px] font-black uppercase tracking-tighter ${result.club === '---' || !result.club ? 'text-gray-500' : 'text-[#00ccff]'}`}>
+                                {result.club === '---' || !result.club ? 'FREE Agent' : result.club}
+                              </span>
+                            </div>
                           </div>
                         </>
                       )}
@@ -382,27 +394,72 @@ export function Navbar() {
 
         {/* Mobile Navigation */}
         <div className={`md:hidden overflow-hidden transition-all duration-300 ${
-          mobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          mobileMenuOpen ? 'max-h-[80vh] opacity-100' : 'max-h-0 opacity-0'
         }`}>
-          <nav className="container mx-auto px-4 py-4 flex flex-col gap-2">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`px-4 py-3 rounded-lg font-black uppercase tracking-tighter transition-all ${
-                    isActive
-                      ? 'bg-[#00ccff]/10 text-[#00ccff] border-l-2 border-[#00ccff]'
-                      : 'text-white/80 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="container mx-auto px-4 py-4 space-y-4">
+            {/* Search Bar Mobile */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Szukaj..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-[#00ccff]/50"
+              />
+              <div className="absolute right-3 top-3.5 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              {/* Mobile Search Results */}
+              {searchOpen && searchResults.length > 0 && (
+                <div className="absolute top-full mt-2 w-full bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto">
+                  {searchResults.map((result, index) => (
+                    <Link
+                      key={index}
+                      href={result.href}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-b-0"
+                    >
+                      {result.type === 'team' ? (
+                        <img src={result.logo} className="w-8 h-8 rounded-lg object-contain" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-[#00ccff]/30 bg-black flex-shrink-0">
+                          <RobloxAvatar username={result.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="text-sm font-bold text-white uppercase italic">{result.name}</div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <nav className="flex flex-col gap-1">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`px-4 py-3 rounded-lg font-black uppercase tracking-tighter transition-all ${
+                      isActive
+                        ? 'bg-[#00ccff]/10 text-[#00ccff] border-l-2 border-[#00ccff]'
+                        : 'text-white/80 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
         </div>
       </div>
     </div>

@@ -4,6 +4,35 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { matches, Match, standings } from '@/lib/data';
+import { API_ENDPOINTS } from '@/lib/constants';
+
+// Helper function to get team object from name
+function getTeamFromName(teamName: string) {
+  const teamMapping: Record<string, any> = {
+    'Zagłębie Lubin': { id: '4', name: 'Zagłębie Lubin', shortName: 'ZAG', logo: 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png', color: '#f97316' },
+    'Legia Warszawa': { id: '2', name: 'Legia Warszawa', shortName: 'LEG', logo: 'https://ext.same-assets.com/1250577607/695801781.png', color: '#dc2626' },
+    'Arka Gdynia': { id: '1', name: 'Arka Gdynia', shortName: 'ARK', logo: 'https://ext.same-assets.com/1250577607/451783410.png', color: '#FFD700' },
+    'Lech Poznań': { id: '3', name: 'Lech Poznań', shortName: 'LEC', logo: 'https://ext.same-assets.com/1250577607/3317158738.png', color: '#1e40af' },
+    'Lechia Gdańsk': { id: '5', name: 'Lechia Gdańsk', shortName: 'LGD', logo: 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', color: '#3b82f6' },
+    'Zawisza Bydgoszcz': { id: '12', name: 'Zawisza Bydgoszcz', shortName: 'ZAW', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png', color: '#f97316' },
+    'Wisła Kraków': { id: '13', name: 'Wisła Kraków', shortName: 'WIS', logo: 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg', color: '#dc2626' },
+    'Motor Lublin': { id: '9', name: 'Motor Lublin', shortName: 'MOT', logo: 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png', color: '#facc15' },
+    'Pogoń Szczecin': { id: '10', name: 'Pogoń Szczecin', shortName: 'POG', logo: 'https://ext.same-assets.com/1250577607/3079565559.png', color: '#1e3a8a' },
+    'Olimpia Elbląg': { id: '8', name: 'Olimpia Elbląg', shortName: 'OLI', logo: 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png', color: '#00ccff' },
+    'Chojniczanka Chojnice': { id: '11', name: 'Chojniczanka Chojnice', shortName: 'CHO', logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png', color: '#3b82f6' },
+    'Grom Nowy Staw': { id: '6', name: 'Grom Nowy Staw', shortName: 'GRO', logo: 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png', color: '#15803d' },
+    'Sokół Olsztyn': { id: '14', name: 'Sokół Olsztyn', shortName: 'SOK', logo: 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png', color: '#00ccff' },
+    'Unia Skierniewice': { id: '7', name: 'Unia Skierniewice', shortName: 'UNI', logo: 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png', color: '#facc15' }
+  };
+
+  return teamMapping[teamName] || {
+    id: 'UNK',
+    name: teamName,
+    shortName: teamName.substring(0, 3).toUpperCase(),
+    logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+    color: '#3b82f6'
+  };
+}
 
 interface ApiMatch {
   status: string;
@@ -197,6 +226,8 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
   const [loadingLive, setLoadingLive] = useState(false);
   const [finishedMatches, setFinishedMatches] = useState<Record<string, boolean>>({});
+  const [fixtures, setFixtures] = useState<Match[]>([]);
+  const [loadingFixtures, setLoadingFixtures] = useState(true);
 
   useEffect(() => {
     const loadFinished = () => {
@@ -219,11 +250,11 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
         }
         const data: ApiMatch[] = await response.json();
         const activeMatches = data.filter((m: ApiMatch) => m.status === 'active' || m.isActive);
-        
+
         if (activeMatches.length > 0) {
           const mappedMatches = activeMatches.map((apiMatch: ApiMatch) => {
-            const homeTeam = matches.find(m => m.homeTeam.name === apiMatch.teamA || m.homeTeam.shortName === apiMatch.teamA)?.homeTeam || { name: apiMatch.teamA, shortName: apiMatch.teamA, logo: '', id: '' };
-            const awayTeam = matches.find(m => m.awayTeam.name === apiMatch.teamB || m.awayTeam.shortName === apiMatch.teamB)?.awayTeam || { name: apiMatch.teamB, shortName: apiMatch.teamB, logo: '', id: '' };
+            const homeTeam = fixtures.find(m => m.homeTeam.name === apiMatch.teamA || m.homeTeam.shortName === apiMatch.teamA)?.homeTeam || getTeamFromName(apiMatch.teamA);
+            const awayTeam = fixtures.find(m => m.awayTeam.name === apiMatch.teamB || m.awayTeam.shortName === apiMatch.teamB)?.awayTeam || getTeamFromName(apiMatch.teamB);
             
             return {
               id: apiMatch.uuid,
@@ -256,15 +287,65 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
     return () => clearInterval(interval);
   }, []);
 
-  const allRounds = [...new Set(matches.filter(m => !finishedMatches[m.id]).map(m => m.round))].sort((a, b) => Number(a) - Number(b));
-  const [selectedRound, setSelectedRound] = useState(allRounds[0] || 1);
+  useEffect(() => {
+    const fetchFixtures = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.SCHEDULE);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fixtures data:', data);
+          const fixturesData = data.fixtures || [];
+          if (Array.isArray(fixturesData) && fixturesData.length > 0) {
+            // Map API data to expected format
+            const mappedFixtures = fixturesData.map((fixture: any) => ({
+              id: fixture.id.toString(),
+              round: fixture.round,
+              date: fixture.date,
+              homeTeam: getTeamFromName(fixture.teamA),
+              awayTeam: getTeamFromName(fixture.teamB),
+              homeScore: fixture.scoreA,
+              awayScore: fixture.scoreB,
+              stadium: "Stadion",
+              category: "Liga",
+              status: (fixture.scoreA === 0 && fixture.scoreB === 0 ? 'upcoming' : 'finished') as 'upcoming' | 'finished'
+            }));
+            console.log('Mapped fixtures:', mappedFixtures.slice(0, 3));
+            setFixtures(mappedFixtures);
+          } else {
+            console.log('No fixtures data or empty array');
+            setFixtures([]);
+          }
+        } else {
+          console.error('Failed to fetch fixtures, status:', response.status);
+          setFixtures([]);
+        }
+      } catch (error) {
+        console.error('Error fetching fixtures:', error);
+        setFixtures([]);
+      } finally {
+        setLoadingFixtures(false);
+      }
+    };
+
+    fetchFixtures();
+  }, []);
+
+  const allRounds = [...new Set(fixtures.filter(m => !finishedMatches[m.id]).map(m => m.round))].sort((a, b) => Number(a) - Number(b));
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+
+  // Set initial selectedRound when fixtures load
+  useEffect(() => {
+    if (fixtures.length > 0 && selectedRound === null) {
+      setSelectedRound(Number(allRounds[0]) || 1);
+    }
+  }, [fixtures, selectedRound, allRounds]);
 
   const roundsPerPage = 3;
   const totalPages = Math.ceil(allRounds.length / roundsPerPage);
   const visibleRounds = allRounds.slice(currentPage * roundsPerPage, (currentPage + 1) * roundsPerPage);
   
-  const roundMatches = matches.filter(m => m.round === selectedRound);
+  const roundMatches = selectedRound ? fixtures.filter(m => m.round === selectedRound) : [];
   const upcomingMatches = roundMatches.filter(m => !finishedMatches[m.id]);
   const finishedRoundMatches = roundMatches.filter(m => finishedMatches[m.id]);
 
@@ -279,6 +360,30 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
       setCurrentPage(currentPage - 1);
     }
   };
+
+  if (loadingFixtures) {
+    return (
+      <section id="terminarz" className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-20 bg-gray-900 rounded-lg">
+            <p className="text-gray-400">Ładowanie terminarza...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (fixtures.length === 0) {
+    return (
+      <section id="terminarz" className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-20 bg-gray-900 rounded-lg">
+            <p className="text-gray-400">Brak danych o meczach</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const content = (
     <>
@@ -316,7 +421,7 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
               {visibleRounds.map((round, idx) => (
                 <button
                   key={round}
-                  onClick={() => setSelectedRound(round)}
+                  onClick={() => setSelectedRound(Number(round))}
                   className={`w-10 h-10 flex items-center justify-center rounded-xl font-black transition-all relative group ${
                     selectedRound === round
                       ? 'text-white'

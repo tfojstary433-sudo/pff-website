@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { standings as defaultStandings, teams } from '@/lib/data';
 import { useMatchStats } from '@/lib/useMatchStats';
+import { API_ENDPOINTS } from '@/lib/constants';
 
 // Helper function for team logos
 function getTeamLogo(teamId: string): string {
@@ -30,8 +31,10 @@ function getTeamLogo(teamId: string): string {
 }
 
 export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: boolean; compact?: boolean } = {}) {
-  const { standings: realStandings } = useMatchStats();
-  const [localStandings, setLocalStandings] = useState<any[]>([]);
+   const { standings: realStandings } = useMatchStats();
+   const [localStandings, setLocalStandings] = useState<any[]>([]);
+   const [apiStandings, setApiStandings] = useState<any[]>([]);
+   const [loadingTable, setLoadingTable] = useState(true);
 
   useEffect(() => {
     const loadLocal = () => {
@@ -64,7 +67,61 @@ export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: bo
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const allStandings = localStandings.length > 0 ? localStandings : (realStandings.length > 0 ? realStandings.map((s, idx) => ({
+  useEffect(() => {
+    const fetchTable = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.TABLE);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Table data:', data);
+          // The API returns data directly as an array
+          const tableData = Array.isArray(data) ? data : (data.table || data.standings || []);
+          if (Array.isArray(tableData) && tableData.length > 0) {
+            const mappedTable = tableData.map((item: any, index: number) => {
+              // Map team ID to short name for logos
+              const teamIdMap: Record<string, string> = {
+                '4': 'ZAG', '2': 'LEG', '1': 'ARK', '3': 'LEC', '5': 'LGD',
+                '12': 'ZAW', '13': 'WIS', '9': 'MOT', '10': 'POG', '8': 'OLI',
+                '11': 'CHO', '6': 'GRO', '14': 'SOK', '7': 'UNI'
+              };
+              const teamId = item.id?.toString() || item.teamId?.toString() || `team_${index}`;
+              const shortName = teamIdMap[teamId] || item.name?.substring(0, 3).toUpperCase() || 'UNK';
+
+              return {
+                position: index + 1,
+                team: {
+                  id: teamId,
+                  name: item.name || `Team ${index + 1}`,
+                  shortName: shortName,
+                  logo: getTeamLogo(shortName),
+                  color: '#3b82f6'
+                },
+                played: item.played || 0,
+                won: item.won || 0,
+                drawn: item.drawn || 0,
+                lost: item.lost || 0,
+                goalsFor: item.goalsFor || 0,
+                goalsAgainst: item.goalsAgainst || 0,
+                goalDifference: item.goalDifference || (item.goalsFor - item.goalsAgainst) || 0,
+                points: item.points || 0
+              };
+            });
+            setApiStandings(mappedTable);
+          }
+        } else {
+          console.error('Failed to fetch table');
+        }
+      } catch (error) {
+        console.error('Error fetching table:', error);
+      } finally {
+        setLoadingTable(false);
+      }
+    };
+
+    fetchTable();
+  }, []);
+
+  const allStandings = apiStandings.length > 0 ? apiStandings : (localStandings.length > 0 ? localStandings : (realStandings.length > 0 ? realStandings.map((s, idx) => ({
     ...s,
     position: idx + 1,
     team: s.team || teams.find(t => t.id === s.teamId) || {
@@ -80,9 +137,18 @@ export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: bo
       ...s.team,
       logo: getTeamLogo(s.team.id)
     }
-  })));
+  }))));
 
   const standings = allStandings;
+
+  if (loadingTable && apiStandings.length === 0) {
+    return (
+      <div className="text-center py-20 bg-gray-900 rounded-lg">
+        <p className="text-gray-400">Ładowanie tabeli...</p>
+      </div>
+    );
+  }
+
   const content = (
     <>
       <div className={`max-w-4xl mx-auto ${compact ? 'space-y-2' : 'space-y-3'}`}>

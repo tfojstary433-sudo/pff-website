@@ -1,21 +1,24 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-function CallbackContent() {
+export default function CallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
-    const code = searchParams.get('code');
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
 
     if (code) {
       fetch(`/api/auth/callback?code=${code}`)
         .then((res) => res.json())
         .then((data) => {
+          // Remove code from URL to prevent reuse on refresh
+          window.history.replaceState({}, '', '/callback');
+
           if (data.error) {
             setError(data.error);
           } else {
@@ -31,11 +34,13 @@ function CallbackContent() {
         .catch((err) => {
           console.error('Callback error:', err);
           setError('Wystąpił błąd podczas logowania.');
+          // Remove code from URL even on error
+          window.history.replaceState({}, '', '/callback');
         });
     } else {
       setError('Brak kodu autoryzacyjnego.');
     }
-  }, [searchParams, router]);
+  }, [router]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -79,17 +84,5 @@ function CallbackContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function CallbackPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white">
-        <div className="w-16 h-16 border-4 border-[#00ccff] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    }>
-      <CallbackContent />
-    </Suspense>
   );
 }

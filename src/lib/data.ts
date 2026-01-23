@@ -275,10 +275,29 @@ export const teams: Team[] = [
     name: 'Chojniczanka Chojnice',
     shortName: 'Chojniczanka',
     logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png',
-    color: '#3b82f6',
+    color: '#dc2626',
     stadium: 'Stadion Miejski w Chojnicach'
   },
 ];
+
+// Map club IDs to Firebase keys
+export const clubToFirebaseKey: { [key: string]: string } = {
+  'ZAW': 'Club 1', // Zawisza Bydgoszcz
+  'ARK': 'Club 2', // Arka Gdynia
+  'LEG': 'Club 3', // Legia Warszawa
+  'LPO': 'Club 4', // Lech Poznań
+  'LGD': 'Club 5', // Lechia Gdańsk
+  'UNI': 'Club 6', // Unia Skierniewice
+  'POG': 'Club 7', // Pogoń Szczecin
+  'ZAG': 'Club 8', // Zagłębie Lubin
+  'SOK': 'Club 9', // Sokół Olsztyn
+  'WIS': 'Club 10', // Wisła Kraków
+  'GRO': 'Club 11', // Grom Nowy Staw
+  'UNK12': 'Club 12', // Unknown Club 12
+  'UNK14': 'Club 14', // Unknown Club 14
+  'SED': 'Referee', // Sędziowie
+  'MED': 'Media'     // Media
+};
 
 export const extraTeams: Team[] = [
   { id: 'ext1', name: 'GKS Katowice', shortName: 'GKS', logo: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/GKS_Katowice_logo.png' },
@@ -471,6 +490,24 @@ export const standings: Standing[] = [
 export const topScorers: Player[] = [];
 
 export const topAssists: Player[] = [];
+
+export const mockPlayersData = [
+  { playerId: 1, name: 'PAKO7U7LOL', teamId: 'POG', goals: 13, assists: 4, cleanSheets: 0, yellowCards: 2, redCards: 0, value: 1250000, position: 'Napastnik', previousClubs: ['ARK', 'LEG'] },
+  { playerId: 2, name: 'MichaelAmeyaw', teamId: 'ARK', goals: 5, assists: 8, cleanSheets: 0, yellowCards: 1, redCards: 0, value: 850000, position: 'Pomocnik', previousClubs: ['POG'] },
+  { playerId: 3, name: 'KarolCzubak', teamId: 'LEG', goals: 10, assists: 2, cleanSheets: 0, yellowCards: 3, redCards: 0, value: 950000, position: 'Napastnik', previousClubs: ['ARK'] },
+  { playerId: 4, name: 'MikaelIshak', teamId: 'LPO', goals: 10, assists: 3, cleanSheets: 0, yellowCards: 1, redCards: 0, value: 1500000, position: 'Napastnik', previousClubs: [] },
+  { playerId: 5, name: 'SebastianBergier', teamId: 'WIS', goals: 9, assists: 1, cleanSheets: 0, yellowCards: 2, redCards: 1, value: 750000, position: 'Napastnik', previousClubs: ['LGD'] },
+  { playerId: 6, name: 'JanGrzesik', teamId: 'ZAW', goals: 8, assists: 5, cleanSheets: 0, yellowCards: 1, redCards: 0, value: 650000, position: 'Obrońca', previousClubs: ['ZAG'] },
+  { playerId: 7, name: 'CamiloMena', teamId: 'ZAG', goals: 7, assists: 5, cleanSheets: 0, yellowCards: 4, redCards: 0, value: 1100000, position: 'Pomocnik', previousClubs: ['LGD'] },
+  { playerId: 8, name: 'BartoszNowak', teamId: 'SOK', goals: 6, assists: 5, cleanSheets: 0, yellowCards: 2, redCards: 0, value: 550000, position: 'Pomocnik', previousClubs: ['LPO'] },
+  { playerId: 9, name: 'RafalWolski', teamId: 'LGD', goals: 5, assists: 5, cleanSheets: 0, yellowCards: 1, redCards: 0, value: 450000, position: 'Pomocnik', previousClubs: ['LEG', 'WIS'] },
+  { playerId: 10, name: 'JesusImaz', teamId: 'POG', goals: 9, assists: 3, cleanSheets: 0, yellowCards: 3, redCards: 0, value: 800000, position: 'Pomocnik', previousClubs: ['LEG'] },
+  { playerId: 11, name: 'KacperTobiasz', teamId: 'LEG', goals: 0, assists: 0, cleanSheets: 7, yellowCards: 0, redCards: 0, value: 2000000, position: 'Bramkarz', previousClubs: [] },
+  { playerId: 12, name: 'BartoszMrozek', teamId: 'LPO', goals: 0, assists: 0, cleanSheets: 6, yellowCards: 1, redCards: 0, value: 1200000, position: 'Bramkarz', previousClubs: ['ZAG'] },
+  { playerId: 13, name: 'ValentinCojocaru', teamId: 'POG', goals: 0, assists: 0, cleanSheets: 5, yellowCards: 0, redCards: 0, value: 900000, position: 'Bramkarz', previousClubs: [] },
+  { playerId: 14, name: 'KrzysztofBebicz', teamId: 'ZAG', goals: 0, assists: 0, cleanSheets: 5, yellowCards: 2, redCards: 0, value: 400000, position: 'Bramkarz', previousClubs: [] },
+  { playerId: 15, name: 'MateuszKochalski', teamId: 'WIS', goals: 0, assists: 0, cleanSheets: 4, yellowCards: 1, redCards: 0, value: 700000, position: 'Bramkarz', previousClubs: [] },
+];
 
 export const newsArticles = [
   {
