@@ -1,4 +1,4 @@
-const BACKEND_URL = 'https://match-tracker-node--motorola4interi.replit.app';
+const BACKEND_URL = 'https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev';
 let pollInterval = null;
 let lastValidMatchData = null;
 

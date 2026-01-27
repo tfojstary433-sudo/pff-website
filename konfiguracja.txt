@@ -6,7 +6,7 @@ ARCHITEKTURA:
 ─────────────────────────────────────────────────────────────────
 Roblox (eventy :startmatch, :score, :time, :endmatch)
     ↓ (HTTP POST)
-Backend (Replit: https://match-tracker-node--motorola4interi.replit.app)
+Backend (Replit: https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev)
     ↑ (HTTP GET polling)
 Website (script.js - wyświetla na scoreboard'zie)
 
@@ -16,7 +16,7 @@ SETUP - BACKEND (REPLIT)
 ═══════════════════════════════════════════════════════════════
 
 1. Kod backendu (server.js) jest hostowany na Replit.
-   URL: https://match-tracker-node--motorola4interi.replit.app
+   URL: https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev
 
 2. Nie musisz uruchamiać serwera lokalnie (npm start), chyba że chcesz testować zmiany w backendzie.
 
@@ -33,7 +33,7 @@ SETUP - ROBLOX
 3. W ServerScriptService zaktualizuj skrypt "RobloxSync" (lub utwórz nowy):
    - Skopiuj zawartość pliku: roblox-sync.lua
    - Upewnij się, że BACKEND_URL w skrypcie to:
-     "https://match-tracker-node--motorola4interi.replit.app"
+     "https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev"
 
 4. Zapisz zmiany (Publish to Roblox)
 
