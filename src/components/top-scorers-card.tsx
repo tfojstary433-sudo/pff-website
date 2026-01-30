@@ -77,7 +77,16 @@ export function TopScorersCard() {
                       </>
                     )}
                   </div>
-                  <h3 className="text-4xl font-black text-white mb-2">{topScorer.name}</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-4xl font-black text-white">{topScorer.name}</h3>
+                    {topScorer.country && (
+                      <img 
+                        src={`https://flagcdn.com/w40/${topScorer.country.toLowerCase()}.png`} 
+                        alt={topScorer.country} 
+                        className="w-8 h-5 object-cover rounded shadow-lg border border-white/10"
+                      />
+                    )}
+                  </div>
                   {getTeam(topScorer.teamId) && (
                     <p className="text-yellow-500 text-xl font-bold">
                       {getTeam(topScorer.teamId)!.name}
@@ -127,6 +136,13 @@ export function TopScorersCard() {
                           <span className="text-gray-500 text-xs font-semibold uppercase">
                             {team?.shortName || 'Team'}
                           </span>
+                          {player.country && (
+                            <img 
+                              src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} 
+                              alt={player.country} 
+                              className="w-4 h-3 object-cover rounded-sm border border-white/10"
+                            />
+                          )}
                         </div>
                         <p className="text-white text-lg font-bold">{player.name}</p>
                       </div>

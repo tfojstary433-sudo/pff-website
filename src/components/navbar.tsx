@@ -161,6 +161,7 @@ export function Navbar() {
                 className={`w-auto brightness-0 invert opacity-90 group-hover:opacity-100 transition-all duration-300 ${
                   scrolled ? 'h-14' : 'h-20'
                 }`}
+                suppressHydrationWarning={true}
               />
             </Link>
 
@@ -175,7 +176,7 @@ export function Navbar() {
                   className="w-80 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-[#00ccff]/50 focus:ring-1 focus:ring-[#00ccff]/20"
                 />
                 <div className="absolute right-3 top-2.5 text-gray-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" suppressHydrationWarning={true}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -277,7 +278,7 @@ export function Navbar() {
                   <option>2024/2025</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4 text-[#00ccff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-[#00ccff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" suppressHydrationWarning={true}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -299,7 +300,7 @@ export function Navbar() {
                       <span className="text-white font-black text-sm">{user.username}</span>
                       <span className="text-white/60 text-xs">Roblox: {user.robloxId || 'Not set'}</span>
                     </div>
-                    <svg className={`w-4 h-4 text-white/60 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className={`w-4 h-4 text-white/60 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" suppressHydrationWarning={true}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
@@ -361,10 +362,7 @@ export function Navbar() {
               ) : (
                 <button
                   onClick={() => {
-                    const clientId = '1448788697653973082';
-                    const redirectUri = encodeURIComponent('http://localhost:3000/callback');
-                    const scope = encodeURIComponent('identify email');
-                    window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
+                    window.location.href = "https://discord.com/oauth2/authorize?client_id=1448788697653973082&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&scope=identify+email+guilds+guilds.members.read&state=discord";
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-[#5865F2] hover:bg-[#4752C4] text-white font-black text-sm rounded-xl transition-colors"
                 >
@@ -380,7 +378,7 @@ export function Navbar() {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
               >
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" suppressHydrationWarning={true}>
                   {mobileMenuOpen ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   ) : (
@@ -407,7 +405,7 @@ export function Navbar() {
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-[#00ccff]/50"
               />
               <div className="absolute right-3 top-3.5 text-gray-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" suppressHydrationWarning={true}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>

@@ -3,32 +3,26 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { matches, Match, standings } from '@/lib/data';
+import { matches, Match, standings, teams, extraTeams } from '@/lib/data';
 import { API_ENDPOINTS } from '@/lib/constants';
 
 // Helper function to get team object from name
 function getTeamFromName(teamName: string) {
-  const teamMapping: Record<string, any> = {
-    'Zagłębie Lubin': { id: '4', name: 'Zagłębie Lubin', shortName: 'ZAG', logo: 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png', color: '#f97316' },
-    'Legia Warszawa': { id: '2', name: 'Legia Warszawa', shortName: 'LEG', logo: 'https://ext.same-assets.com/1250577607/695801781.png', color: '#dc2626' },
-    'Arka Gdynia': { id: '1', name: 'Arka Gdynia', shortName: 'ARK', logo: 'https://ext.same-assets.com/1250577607/451783410.png', color: '#FFD700' },
-    'Lech Poznań': { id: '3', name: 'Lech Poznań', shortName: 'LEC', logo: 'https://ext.same-assets.com/1250577607/3317158738.png', color: '#1e40af' },
-    'Lechia Gdańsk': { id: '5', name: 'Lechia Gdańsk', shortName: 'LGD', logo: 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', color: '#3b82f6' },
-    'Zawisza Bydgoszcz': { id: '12', name: 'Zawisza Bydgoszcz', shortName: 'ZAW', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png', color: '#f97316' },
-    'Wisła Kraków': { id: '13', name: 'Wisła Kraków', shortName: 'WIS', logo: 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg', color: '#dc2626' },
-    'Motor Lublin': { id: '9', name: 'Motor Lublin', shortName: 'MOT', logo: 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png', color: '#facc15' },
-    'Pogoń Szczecin': { id: '10', name: 'Pogoń Szczecin', shortName: 'POG', logo: 'https://ext.same-assets.com/1250577607/3079565559.png', color: '#1e3a8a' },
-    'Olimpia Elbląg': { id: '8', name: 'Olimpia Elbląg', shortName: 'OLI', logo: 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png', color: '#00ccff' },
-    'Chojniczanka Chojnice': { id: '11', name: 'Chojniczanka Chojnice', shortName: 'CHO', logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png', color: '#3b82f6' },
-    'Grom Nowy Staw': { id: '6', name: 'Grom Nowy Staw', shortName: 'GRO', logo: 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png', color: '#15803d' },
-    'Sokół Olsztyn': { id: '14', name: 'Sokół Olsztyn', shortName: 'SOK', logo: 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png', color: '#00ccff' },
-    'Unia Skierniewice': { id: '7', name: 'Unia Skierniewice', shortName: 'UNI', logo: 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png', color: '#facc15' }
-  };
+  const allTeams = [...teams, ...extraTeams];
+  const normalizedSearch = (teamName || '').toLowerCase().trim();
+  
+  const found = allTeams.find(t => 
+    t.name.toLowerCase() === normalizedSearch || 
+    t.shortName.toLowerCase() === normalizedSearch ||
+    t.id.toLowerCase() === normalizedSearch
+  );
+  
+  if (found) return found;
 
-  return teamMapping[teamName] || {
+  return {
     id: 'UNK',
-    name: teamName,
-    shortName: teamName.substring(0, 3).toUpperCase(),
+    name: teamName || 'TBD',
+    shortName: (teamName || 'TBD').substring(0, 3).toUpperCase(),
     logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
     color: '#3b82f6'
   };
@@ -285,7 +279,7 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
     fetchLive();
     const interval = setInterval(fetchLive, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fixtures]);
 
   useEffect(() => {
     const fetchFixtures = async () => {
@@ -294,20 +288,20 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
         if (response.ok) {
           const data = await response.json();
           console.log('Fixtures data:', data);
-          const fixturesData = data.fixtures || [];
+          const fixturesData = Array.isArray(data) ? data : data.fixtures || [];
           if (Array.isArray(fixturesData) && fixturesData.length > 0) {
             // Map API data to expected format
             const mappedFixtures = fixturesData.map((fixture: any) => ({
               id: fixture.id.toString(),
               round: fixture.round,
               date: fixture.date,
-              homeTeam: getTeamFromName(fixture.teamA),
-              awayTeam: getTeamFromName(fixture.teamB),
-              homeScore: fixture.scoreA,
-              awayScore: fixture.scoreB,
+              homeTeam: getTeamFromName(fixture.homeTeam || fixture.teamA),
+              awayTeam: getTeamFromName(fixture.awayTeam || fixture.teamB),
+              homeScore: fixture.homeScore || fixture.scoreA || 0,
+              awayScore: fixture.awayScore || fixture.scoreB || 0,
               stadium: "Stadion",
               category: "Liga",
-              status: (fixture.scoreA === 0 && fixture.scoreB === 0 ? 'upcoming' : 'finished') as 'upcoming' | 'finished'
+              status: ((fixture.status === 'played' || fixture.status === 'finished' || fixture.isFinished || (fixture.homeScore > 0 || fixture.scoreA > 0 || fixture.awayScore > 0 || fixture.scoreB > 0)) ? 'finished' : 'upcoming') as 'finished' | 'upcoming'
             }));
             console.log('Mapped fixtures:', mappedFixtures.slice(0, 3));
             setFixtures(mappedFixtures);
@@ -317,11 +311,13 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
           }
         } else {
           console.error('Failed to fetch fixtures, status:', response.status);
-          setFixtures([]);
+          // Fallback to local data
+          setFixtures(matches);
         }
       } catch (error) {
         console.error('Error fetching fixtures:', error);
-        setFixtures([]);
+        // Fallback to local data
+        setFixtures(matches);
       } finally {
         setLoadingFixtures(false);
       }
@@ -346,8 +342,8 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
   const visibleRounds = allRounds.slice(currentPage * roundsPerPage, (currentPage + 1) * roundsPerPage);
   
   const roundMatches = selectedRound ? fixtures.filter(m => m.round === selectedRound) : [];
-  const upcomingMatches = roundMatches.filter(m => !finishedMatches[m.id]);
-  const finishedRoundMatches = roundMatches.filter(m => finishedMatches[m.id]);
+  const upcomingMatches = roundMatches.filter(m => !finishedMatches[m.id] && m.status !== 'finished');
+  const finishedRoundMatches = roundMatches.filter(m => finishedMatches[m.id] || m.status === 'finished');
 
   const handleNextPage = () => {
     if (currentPage < totalPages - 1) {

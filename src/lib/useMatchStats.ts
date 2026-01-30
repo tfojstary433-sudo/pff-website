@@ -3,16 +3,44 @@
 import { useState, useEffect } from 'react';
 import { teams } from './data';
 import { getAllPlayerStats } from './firebase';
-import { API_ENDPOINTS } from './constants';
+import { API_ENDPOINTS, TEAM_ID_MAPPING } from './constants';
 
 // Helper functions for team logos and colors
-function getTeamLogo(teamId: string): string {
-  const team = teams.find(t => t.id === teamId || t.shortName === teamId);
+function getTeamLogo(teamId: string, teamName?: string): string {
+  if (teamName) {
+    const normalizedName = teamName.toLowerCase();
+    const teamByName = teams.find(t => {
+      const tName = t.name.toLowerCase();
+      const tShort = t.shortName.toLowerCase();
+      return tName === normalizedName || 
+             normalizedName.includes(tName) || 
+             tName.includes(normalizedName) ||
+             normalizedName.includes(tShort);
+    });
+    if (teamByName) return teamByName.logo;
+  }
+  
+  const shortName = TEAM_ID_MAPPING[teamId] || teamId;
+  const team = teams.find(t => t.id === shortName || t.shortName === shortName);
   return team?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
 }
 
-function getTeamColor(teamId: string): string {
-  const team = teams.find(t => t.id === teamId || t.shortName === teamId);
+function getTeamColor(teamId: string, teamName?: string): string {
+  if (teamName) {
+    const normalizedName = teamName.toLowerCase();
+    const teamByName = teams.find(t => {
+      const tName = t.name.toLowerCase();
+      const tShort = t.shortName.toLowerCase();
+      return tName === normalizedName || 
+             normalizedName.includes(tName) || 
+             tName.includes(normalizedName) ||
+             normalizedName.includes(tShort);
+    });
+    if (teamByName) return teamByName.color || '#3b82f6';
+  }
+
+  const shortName = TEAM_ID_MAPPING[teamId] || teamId;
+  const team = teams.find(t => t.id === shortName || t.shortName === shortName);
   return team?.color || '#3b82f6';
 }
 
@@ -26,6 +54,8 @@ export interface PlayerStats {
   cleanSheets: number;
   yellowCards: number;
   redCards: number;
+  country?: string;
+  position?: string;
   avatarUrl?: string;
 }
 
@@ -84,37 +114,85 @@ export function useMatchStats() {
   const fetchFromServer = async () => {
     try {
       // Fetch from external APIs and Firebase
-      const [playersRes, tableRes, firebaseStats] = await Promise.all([
+      const [playersRes, tableRes, historyRes, matchesHistoryRes, firebaseStats] = await Promise.all([
         fetch(API_ENDPOINTS.STATS),
         fetch(API_ENDPOINTS.TABLE),
+        fetch(API_ENDPOINTS.PLAYERS_HISTORY).catch(() => null),
+        fetch('/api/history').catch(() => null),
         getAllPlayerStats().catch(() => ({}))
       ]);
 
       let combinedPlayers: PlayerStats[] = [];
+      let historyData: any = null;
+
+      if (historyRes && historyRes.ok) {
+        historyData = await historyRes.json();
+      }
+
+      // Process matches history
+      if (matchesHistoryRes && matchesHistoryRes.ok) {
+        const historyMatches = await matchesHistoryRes.json();
+        if (Array.isArray(historyMatches)) {
+          const finishedMap: Record<string, MatchResult> = {};
+          historyMatches.forEach((m: any) => {
+            finishedMap[m.matchId] = {
+              matchId: m.matchId,
+              homeScore: m.homeScore,
+              awayScore: m.awayScore,
+              homeTeamId: m.homeTeamId,
+              awayTeamId: m.awayTeamId,
+              scorers: m.scorers || [],
+              finished: true,
+              timestamp: m.date
+            };
+          });
+          setFinishedMatches(prev => ({ ...prev, ...finishedMap }));
+          localStorage.setItem('matchStats', JSON.stringify(finishedMap));
+        }
+      }
 
       console.log('Players API response:', playersRes.status, playersRes.statusText);
       if (playersRes.ok) {
         const data = await playersRes.json();
-        const playersData = data.players || [];
+        const playersData = Array.isArray(data) ? data : (data.players || []);
         if (Array.isArray(playersData) && playersData.length > 0) {
-          combinedPlayers = playersData.map(player => ({
-            playerId: player.id,
-            name: player.name || player.username,
-            teamId: player.teamId || 'UNK',
-            goals: player.goals || 0,
-            assists: player.assists || 0,
-            yellowCards: player.yellowCards || 0,
-            redCards: player.redCards || 0,
-            cleanSheets: player.cleanSheets || 0,
-            points: (player.goals || 0) + (player.assists || 0)
-          }));
+          combinedPlayers = playersData.map(player => {
+            const pId = player.id || player.playerId;
+            const pName = player.name || player.username;
+            
+            // Try to get country and position from history
+            let country = player.country;
+            let position = player.position;
+            
+            if (historyData && historyData.players) {
+              const hPlayer = historyData.players[pId] || Object.values(historyData.players).find((p: any) => p.name === pName);
+              if (hPlayer) {
+                if (!country) country = hPlayer.country;
+                if (!position || position === '---') position = hPlayer.position;
+              }
+            }
+
+            return {
+              playerId: pId,
+              name: pName,
+              teamId: player.teamId || 'UNK',
+              goals: player.goals || 0,
+              assists: player.assists || 0,
+              yellowCards: player.yellowCards || 0,
+              redCards: player.redCards || 0,
+              cleanSheets: player.cleanSheets || 0,
+              points: (player.goals || 0) + (player.assists || 0),
+              country: country,
+              position: position
+            };
+          });
         }
       }
 
       // Merge with Firebase stats
       if (firebaseStats && Object.keys(firebaseStats).length > 0) {
         Object.entries(firebaseStats).forEach(([id, stats]: [string, any]) => {
-          const existingPlayer = combinedPlayers.find(p => p.playerId.toString() === id || p.name === stats.name);
+          const existingPlayer = combinedPlayers.find(p => p.playerId?.toString() === id || p.name === stats.name);
           if (existingPlayer) {
             existingPlayer.goals = Math.max(existingPlayer.goals, stats.goals || 0);
             existingPlayer.assists = Math.max(existingPlayer.assists, stats.assists || 0);
@@ -125,7 +203,24 @@ export function useMatchStats() {
             if (stats.teamId && (existingPlayer.teamId === 'UNK' || !existingPlayer.teamId)) {
               existingPlayer.teamId = stats.teamId;
             }
+            if (stats.country && !existingPlayer.country) {
+              existingPlayer.country = stats.country;
+            }
+            if (stats.position && !existingPlayer.position) {
+              existingPlayer.position = stats.position;
+            }
           } else {
+            // Try to get country and position from history for Firebase players too
+            let country = stats.country;
+            let position = stats.position;
+            if (historyData && historyData.players) {
+              const hPlayer = historyData.players[id] || Object.values(historyData.players).find((p: any) => p.name === stats.name);
+              if (hPlayer) {
+                if (!country) country = hPlayer.country;
+                if (!position || position === '---') position = hPlayer.position;
+              }
+            }
+
             combinedPlayers.push({
               playerId: parseInt(id) || 0,
               name: stats.name || `Gracz ${id}`,
@@ -135,7 +230,9 @@ export function useMatchStats() {
               yellowCards: stats.yellowCards || 0,
               redCards: stats.redCards || 0,
               cleanSheets: stats.cleanSheets || 0,
-              points: (stats.goals || 0) + (stats.assists || 0)
+              points: (stats.goals || 0) + (stats.assists || 0),
+              country: country,
+              position: position
             });
           }
         });
@@ -150,35 +247,31 @@ export function useMatchStats() {
       if (tableRes.ok) {
         const data = await tableRes.json();
         console.log('Table data:', data);
-        const tableData = data.standings || [];
+        const tableData = Array.isArray(data) ? data : (data.standings || []);
         if (Array.isArray(tableData) && tableData.length > 0) {
           // Map API data to expected format
           const mappedStandings = tableData.map((standing, index) => {
             // Map team ID to short name for logos
-            const teamIdMap: Record<string, string> = {
-              '4': 'ZAG', '2': 'LEG', '1': 'ARK', '3': 'LEC', '5': 'LGD',
-              '12': 'ZAW', '13': 'WIS', '9': 'MOT', '10': 'POG', '8': 'OLI',
-              '11': 'CHO', '6': 'GRO', '14': 'SOK', '7': 'UNI'
-            };
-            const shortName = teamIdMap[standing.id.toString()] || standing.name.substring(0, 3).toUpperCase();
+            const teamId = standing.id?.toString() || standing.teamId?.toString() || (index + 1).toString();
+            const shortName = TEAM_ID_MAPPING[teamId] || standing.team?.shortName || standing.name?.substring(0, 3).toUpperCase() || 'UNK';
 
             return {
-              teamId: standing.id.toString(),
-              played: standing.played,
-              won: standing.won,
-              drawn: standing.drawn,
-              lost: standing.lost,
-              goalsFor: standing.goalsFor,
-              goalsAgainst: standing.goalsAgainst,
-              goalDifference: standing.goalsFor - standing.goalsAgainst,
-              points: standing.points,
-              position: index + 1,
-              team: {
-                id: standing.id.toString(),
-                name: standing.name,
+              teamId: teamId,
+              played: standing.played || 0,
+              won: standing.won || 0,
+              drawn: standing.drawn || 0,
+              lost: standing.lost || 0,
+              goalsFor: standing.goalsFor || 0,
+              goalsAgainst: standing.goalsAgainst || 0,
+              goalDifference: (standing.goalsFor || 0) - (standing.goalsAgainst || 0),
+              points: standing.points || 0,
+              position: standing.position || (index + 1),
+              team: standing.team || {
+                id: shortName,
+                name: standing.name || 'Unknown Team',
                 shortName: shortName,
-                logo: getTeamLogo(shortName),
-                color: getTeamColor(shortName)
+                logo: getTeamLogo(shortName, standing.name),
+                color: getTeamColor(shortName, standing.name)
               }
             };
           });

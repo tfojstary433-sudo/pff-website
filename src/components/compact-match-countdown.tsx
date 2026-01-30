@@ -136,6 +136,7 @@ export function CompactMatchCountdown({ isMinimized = false }: { isMinimized?: b
   }, []);
 
   if (loading || hasLiveMatch || isMinimized) {
+    if (loading) return <div className="fixed right-8 top-96 w-80 h-48 bg-black/10 rounded-xl" />;
     return null;
   }
 

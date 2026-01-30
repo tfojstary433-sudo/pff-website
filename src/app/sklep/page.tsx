@@ -694,133 +694,133 @@ export default function SklepPage() {
                     </p>
                   )}
                 </div>
+              </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+                      {vipPackages.map((vip) => (
+                        <div
+                          key={vip.id}
+                          className="group relative bg-gradient-to-br from-[#00ccff]/10 to-[#0066ff]/5 border border-[#00ccff]/30 rounded-3xl p-6 hover:border-[#00ccff]/70 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
+                        >
+                          <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/30 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-                  {vipPackages.map((vip) => (
-                    <div
-                      key={vip.id}
-                      className="group relative bg-gradient-to-br from-[#00ccff]/10 to-[#0066ff]/5 border border-[#00ccff]/30 rounded-3xl p-6 hover:border-[#00ccff]/70 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
-                    >
-                      <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/30 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                      <div className="relative z-10 flex flex-col h-full">
-                        <div className="mb-4 flex justify-between items-start">
-                          <div className="flex items-center gap-2">
-                            <img src={vip.image} alt="" className="w-8 h-8 object-contain" />
-                            <span className="px-2 py-1 bg-[#00ccff]/20 text-[#00ccff] text-[10px] font-black uppercase rounded-full border border-[#00ccff]/30">
-                              {vip.badge}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mb-4 flex-1">
-                          <h3 className="text-2xl font-black uppercase tracking-tight mb-2 group-hover:text-[#00ccff] transition-colors">
-                            {vip.name}
-                          </h3>
-                          <p className="text-white/60 text-sm leading-relaxed">
-                            {vip.description}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-white/40 uppercase">Cena:</span>
-                            <span className="text-2xl font-black text-[#00ccff]">
-                              {vip.pln}
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={() => handleBuyVip(vip)}
-                            disabled={loading}
-                            className="px-8 py-3 bg-[#00ccff] hover:bg-[#00ccff]/80 disabled:bg-gray-500 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)] disabled:cursor-not-allowed"
-                          >
-                            {loading ? 'PRZETWARZANIE...' : 'KUP TERAZ'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Subskrypcje za tokeny */}
-                <div>
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl font-black uppercase tracking-tight mb-4 bg-gradient-to-r from-white via-[#00ccff] to-white bg-clip-text text-transparent">
-                      SUBSKRYPCJE ZA TOKENY
-                    </h2>
-                    <p className="text-white/60 text-lg max-w-2xl mx-auto">
-                      Kup subskrypcje za tokeny i ciesz się dodatkowymi korzyściami w grze.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {subscriptions.map((sub) => (
-                      <div
-                        key={sub.id}
-                        className="group relative bg-white/5 border border-white/10 rounded-3xl p-8 hover:border-[#00ccff]/50 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
-                      >
-                        <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                        <div className="relative z-10 flex flex-col h-full">
-                          <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-2xl font-black uppercase tracking-tight group-hover:text-[#00ccff] transition-colors">
-                              {sub.name}
-                            </h3>
-                            <div className="bg-yellow-500/80 px-3 py-1 rounded-full text-[10px] font-black uppercase text-black">
-                              {sub.badge}
-                            </div>
-                          </div>
-
-                          <p className="text-white/50 text-sm mb-8">
-                            {sub.description}
-                          </p>
-
-                          <div className="space-y-4 mb-8">
-                            <label className="text-xs font-bold text-white/40 uppercase block">Wybierz okres (dni):</label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {[7, 30, 90].map((d) => (
-                                <button
-                                  key={d}
-                                  onClick={() => setSubDays({ ...subDays, [sub.id]: d })}
-                                  className={`py-2 rounded-xl font-black transition-all ${subDays[sub.id] === d ? 'bg-[#00ccff] text-black' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
-                                >
-                                  {d}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold text-white/40 uppercase">Razem:</span>
+                          <div className="relative z-10 flex flex-col h-full">
+                            <div className="mb-4 flex justify-between items-start">
                               <div className="flex items-center gap-2">
-                                <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="Token" className="w-5 h-5 object-contain" />
-                                <span className="text-2xl font-black text-[#00ccff]">
-                                  {sub.pricePerDay * (subDays[sub.id] || 30)}
+                                <img src={vip.image} alt="" className="w-8 h-8 object-contain" />
+                                <span className="px-2 py-1 bg-[#00ccff]/20 text-[#00ccff] text-[10px] font-black uppercase rounded-full border border-[#00ccff]/30">
+                                  {vip.badge}
                                 </span>
                               </div>
                             </div>
 
-                            <button
-                              onClick={() => handleBuySubscription(sub)}
-                              className="px-8 py-3 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)]"
-                            >
-                              DODAJ DO KOSZYKA
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    )}
+                            <div className="mb-4 flex-1">
+                              <h3 className="text-2xl font-black uppercase tracking-tight mb-2 group-hover:text-[#00ccff] transition-colors">
+                                {vip.name}
+                              </h3>
+                              <p className="text-white/60 text-sm leading-relaxed">
+                                {vip.description}
+                              </p>
+                            </div>
 
-    <Footer />
-  </div>
-);
+                            <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-white/40 uppercase">Cena:</span>
+                                <span className="text-2xl font-black text-[#00ccff]">
+                                  {vip.pln}
+                                </span>
+                              </div>
+
+                              <button
+                                onClick={() => handleBuyVip(vip)}
+                                disabled={loading}
+                                className="px-8 py-3 bg-[#00ccff] hover:bg-[#00ccff]/80 disabled:bg-gray-500 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)] disabled:cursor-not-allowed"
+                              >
+                                {loading ? 'PRZETWARZANIE...' : 'KUP TERAZ'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                  {/* Subskrypcje za tokeny */}
+                  <div>
+                    <div className="text-center mb-12">
+                      <h2 className="text-4xl font-black uppercase tracking-tight mb-4 bg-gradient-to-r from-white via-[#00ccff] to-white bg-clip-text text-transparent">
+                        SUBSKRYPCJE ZA TOKENY
+                      </h2>
+                      <p className="text-white/60 text-lg max-w-2xl mx-auto">
+                        Kup subskrypcje za tokeny i ciesz się dodatkowymi korzyściami w grze.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {subscriptions.map((sub) => (
+                        <div
+                          key={sub.id}
+                          className="group relative bg-white/5 border border-white/10 rounded-3xl p-8 hover:border-[#00ccff]/50 transition-all duration-500 hover:translate-y-[-8px] flex flex-col"
+                        >
+                          <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                          <div className="relative z-10 flex flex-col h-full">
+                            <div className="mb-4 flex items-center justify-between">
+                              <h3 className="text-2xl font-black uppercase tracking-tight group-hover:text-[#00ccff] transition-colors">
+                                {sub.name}
+                              </h3>
+                              <div className="bg-yellow-500/80 px-3 py-1 rounded-full text-[10px] font-black uppercase text-black">
+                                {sub.badge}
+                              </div>
+                            </div>
+
+                            <p className="text-white/50 text-sm mb-8">
+                              {sub.description}
+                            </p>
+
+                            <div className="space-y-4 mb-8">
+                              <label className="text-xs font-bold text-white/40 uppercase block">Wybierz okres (dni):</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[7, 30, 90].map((d) => (
+                                  <button
+                                    key={d}
+                                    onClick={() => setSubDays({ ...subDays, [sub.id]: d })}
+                                    className={`py-2 rounded-xl font-black transition-all ${subDays[sub.id] === d ? 'bg-[#00ccff] text-black' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                                  >
+                                    {d}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-white/40 uppercase">Razem:</span>
+                                <div className="flex items-center gap-2">
+                                  <img src="https://i.ibb.co/SXJ3TDjY/obraz-2026-01-22-144700123.png" alt="Token" className="w-5 h-5 object-contain" />
+                                  <span className="text-2xl font-black text-[#00ccff]">
+                                    {sub.pricePerDay * (subDays[sub.id] || 30)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => handleBuySubscription(sub)}
+                                className="px-8 py-3 bg-[#00ccff] hover:bg-[#00ccff]/80 text-black font-black text-sm uppercase rounded-xl transition-all active:scale-95 shadow-[0_4px_15px_rgba(0,204,255,0.3)]"
+                              >
+                                DODAJ DO KOSZYKA
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+            </div>
+        </>
+      )}
+
+     <Footer />
+   </div>
+  );
 }

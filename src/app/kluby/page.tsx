@@ -20,7 +20,10 @@ export default function KlubyPage() {
     'Sokół Olsztyn',
     'Grom Nowy Staw',
     'Motor Lublin',
-    'Olimpia Elbląg'
+    'Olimpia Elbląg',
+    'Chojniczanka Chojnice',
+    'Jagiellonia Białystok',
+    'Wisła Płock'
   ];
 
   const filteredTeams = teams.filter(team =>
@@ -99,55 +102,41 @@ export default function KlubyPage() {
         <div className="absolute inset-0 bg-black/70"></div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredTeams.map((team) => (
               <Link
                 key={team.id}
                 href={`/klub/${team.id}`}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 hover:border-blue-400 transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl"
+                className="bg-gray-800/50 hover:bg-gray-700/50 rounded-2xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 shadow-xl flex flex-col items-center justify-center min-h-[250px] backdrop-blur-sm group"
               >
-                <div 
-                  className="absolute inset-0 opacity-30 group-hover:opacity-50 transition-opacity"
-                  style={{
-                    background: `linear-gradient(135deg, ${team.color || '#003087'}44 0%, #000000 100%)`
-                  }}
-                ></div>
+                <div className="mb-6 relative">
+                  <div 
+                    className="absolute inset-0 blur-2xl opacity-20 scale-150 rounded-full"
+                    style={{ backgroundColor: team.color }}
+                  ></div>
+                  <img 
+                    src={team.logo} 
+                    alt={team.name}
+                    className="relative z-10 w-24 h-24 object-contain drop-shadow-2xl transform group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder-logo.png';
+                    }}
+                  />
+                </div>
                 
-                <div className="relative bg-gradient-to-b from-gray-900/80 to-black/90 p-10 flex flex-col items-center justify-center min-h-[280px] backdrop-blur-sm">
-                  <div className="mb-6 relative">
-                    <div 
-                      className="absolute inset-0 blur-2xl opacity-40 scale-150"
-                      style={{ backgroundColor: team.color }}
-                    ></div>
-                    <img 
-                      src={team.logo} 
-                      alt={team.name}
-                      className="relative z-10 w-28 h-28 object-contain drop-shadow-2xl transform group-hover:scale-110 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder-logo.png';
-                      }}
-                    />
-                  </div>
-                  
-                  <h2 className="text-white font-black text-2xl text-center uppercase tracking-tight mb-1">
-                    {team.name}
-                  </h2>
+                <h2 className="text-white font-black text-xl text-center uppercase tracking-tight mb-2 group-hover:text-blue-400 transition-colors">
+                  {team.name}
+                </h2>
 
-                  <div className="w-12 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent mb-2"></div>
+                <div className="w-12 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent mb-3"></div>
 
-                  <div className="text-center mb-4">
-                    <div className="text-gray-300 text-sm font-medium">
-                      {playerCounts[team.id] !== undefined ? (
-                        <span>{playerCounts[team.id]} ZAWODNIK{playerCounts[team.id] !== 1 ? 'ÓW' : ''}</span>
-                      ) : (
-                        <span>Ładowanie...</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-blue-400 font-bold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span>ZOBACZ PROFIL</span>
-                    <span>→</span>
+                <div className="text-center">
+                  <div className="text-gray-400 text-xs font-bold tracking-widest uppercase">
+                    {playerCounts[team.id] !== undefined ? (
+                      <span>{playerCounts[team.id]} ZAWODNIKÓW</span>
+                    ) : (
+                      <span>Ładowanie...</span>
+                    )}
                   </div>
                 </div>
               </Link>

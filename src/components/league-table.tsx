@@ -5,29 +5,46 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { standings as defaultStandings, teams } from '@/lib/data';
 import { useMatchStats } from '@/lib/useMatchStats';
-import { API_ENDPOINTS } from '@/lib/constants';
+import { API_ENDPOINTS, TEAM_ID_MAPPING } from '@/lib/constants';
 
-// Helper function for team logos
-function getTeamLogo(teamId: string): string {
-  const teamLogos: Record<string, string> = {
-    'ARK': 'https://ext.same-assets.com/1250577607/451783410.png',
-    'LEG': 'https://ext.same-assets.com/1250577607/695801781.png',
-    'LEC': 'https://ext.same-assets.com/1250577607/3317158738.png',
-    'LGD': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png',
-    'POG': 'https://ext.same-assets.com/1250577607/3079565559.png',
-    'ZAW': 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png',
-    'OLI': 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png',
-    'UNI': 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png',
-    'MOT': 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png',
-    'SOK': 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png',
-    'WIS': 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg',
-    'GRO': 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png',
-    'CHO': 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png',
-    'ZAG': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png',
-    'LEC_0': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', // Lechia Gdańsk
+// Centralized helper functions for team logos and colors to ensure consistency
+function getConsistentTeamLogo(teamId: string, teamName?: string): string {
+  if (teamName) {
+    const normalizedName = teamName.toLowerCase();
+    const teamByName = teams.find(t => {
+      const tName = t.name.toLowerCase();
+      const tShort = t.shortName.toLowerCase();
+      return tName === normalizedName || 
+             normalizedName.includes(tName) || 
+             tName.includes(normalizedName) ||
+             normalizedName.includes(tShort);
+    });
+    if (teamByName) return teamByName.logo;
+  }
+  
+  // Use mapping or direct ID
+  const shortName = TEAM_ID_MAPPING[teamId] || teamId;
+  const team = teams.find(t => t.id === shortName || t.shortName === shortName);
+  return team?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
+}
 
-  };
-  return teamLogos[teamId] || '';
+function getConsistentTeamColor(teamId: string, teamName?: string): string {
+  if (teamName) {
+    const normalizedName = teamName.toLowerCase();
+    const teamByName = teams.find(t => {
+      const tName = t.name.toLowerCase();
+      const tShort = t.shortName.toLowerCase();
+      return tName === normalizedName || 
+             normalizedName.includes(tName) || 
+             tName.includes(normalizedName) ||
+             normalizedName.includes(tShort);
+    });
+    if (teamByName) return teamByName.color || '#3b82f6';
+  }
+
+  const shortName = TEAM_ID_MAPPING[teamId] || teamId;
+  const team = teams.find(t => t.id === shortName || t.shortName === shortName);
+  return team?.color || '#3b82f6';
 }
 
 export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: boolean; compact?: boolean } = {}) {
@@ -42,17 +59,22 @@ export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: bo
       if (data) {
         const parsed = JSON.parse(data);
         if (parsed.length > 0) {
-          setLocalStandings(parsed.map((s: any, idx: number) => ({
-            ...s,
-            position: idx + 1,
-            team: s.team || teams.find(t => t.id === s.teamId) || {
-              id: s.teamId,
-              name: s.teamId,
-              shortName: s.teamId.substring(0, 3),
-              logo: getTeamLogo(s.teamId),
-              color: '#3b82f6'
-            }
-          })));
+          setLocalStandings(parsed.map((s: any, idx: number) => {
+            const teamId = s.teamId?.toString() || (s.team?.id)?.toString();
+            const shortName = TEAM_ID_MAPPING[teamId] || teamId;
+            
+            return {
+              ...s,
+              position: idx + 1,
+              team: s.team || teams.find(t => t.id === shortName) || {
+                id: shortName,
+                name: s.teamId,
+                shortName: shortName.substring(0, 3),
+                logo: getConsistentTeamLogo(teamId),
+                color: getConsistentTeamColor(teamId)
+              }
+            };
+          }));
         }
       }
     };
@@ -78,23 +100,17 @@ export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: bo
           const tableData = Array.isArray(data) ? data : (data.table || data.standings || []);
           if (Array.isArray(tableData) && tableData.length > 0) {
             const mappedTable = tableData.map((item: any, index: number) => {
-              // Map team ID to short name for logos
-              const teamIdMap: Record<string, string> = {
-                '4': 'ZAG', '2': 'LEG', '1': 'ARK', '3': 'LEC', '5': 'LGD',
-                '12': 'ZAW', '13': 'WIS', '9': 'MOT', '10': 'POG', '8': 'OLI',
-                '11': 'CHO', '6': 'GRO', '14': 'SOK', '7': 'UNI'
-              };
               const teamId = item.id?.toString() || item.teamId?.toString() || `team_${index}`;
-              const shortName = teamIdMap[teamId] || item.name?.substring(0, 3).toUpperCase() || 'UNK';
+              const shortName = TEAM_ID_MAPPING[teamId] || item.name?.substring(0, 3).toUpperCase() || 'UNK';
 
               return {
                 position: index + 1,
                 team: {
-                  id: teamId,
+                  id: shortName,
                   name: item.name || `Team ${index + 1}`,
                   shortName: shortName,
-                  logo: getTeamLogo(shortName),
-                  color: '#3b82f6'
+                  logo: getConsistentTeamLogo(teamId, item.name),
+                  color: getConsistentTeamColor(teamId, item.name)
                 },
                 played: item.played || 0,
                 won: item.won || 0,
@@ -121,21 +137,26 @@ export function LeagueTable({ isInTab = false, compact = false }: { isInTab?: bo
     fetchTable();
   }, []);
 
-  const allStandings = apiStandings.length > 0 ? apiStandings : (localStandings.length > 0 ? localStandings : (realStandings.length > 0 ? realStandings.map((s, idx) => ({
-    ...s,
-    position: idx + 1,
-    team: s.team || teams.find(t => t.id === s.teamId) || {
-      id: s.teamId,
-      name: s.teamId, // Fallback name
-      shortName: s.teamId.substring(0, 3),
-      logo: getTeamLogo(s.teamId),
-      color: '#3b82f6'
-    }
-  })) : defaultStandings.map((s, idx) => ({
+  const allStandings = apiStandings.length > 0 ? apiStandings : (localStandings.length > 0 ? localStandings : (realStandings.length > 0 ? realStandings.map((s, idx) => {
+    const teamId = s.teamId?.toString();
+    const shortName = TEAM_ID_MAPPING[teamId] || teamId;
+    return {
+      ...s,
+      position: idx + 1,
+      team: s.team || teams.find(t => t.id === shortName) || {
+        id: shortName,
+        name: s.teamId, // Fallback name
+        shortName: shortName.substring(0, 3),
+        logo: getConsistentTeamLogo(teamId),
+        color: getConsistentTeamColor(teamId)
+      }
+    };
+  }) : defaultStandings.map((s, idx) => ({
     ...s,
     team: {
       ...s.team,
-      logo: getTeamLogo(s.team.id)
+      logo: getConsistentTeamLogo(s.team.id, s.team.name),
+      color: getConsistentTeamColor(s.team.id, s.team.name)
     }
   }))));
 

@@ -4,40 +4,35 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
-import { matches, standings } from '@/lib/data';
+import { matches, standings, teams, extraTeams } from '@/lib/data';
 import { useMatchStats } from '@/lib/useMatchStats';
 import { API_ENDPOINTS } from '@/lib/constants';
 
 import { LeagueTable } from './league-table';
-import { Statistics } from './statistics';
 
 // Helper function to get team object from name
 function getTeamFromName(teamName: string) {
-  const teamMapping: Record<string, any> = {
-    'Zagłębie Lubin': { id: '4', name: 'Zagłębie Lubin', shortName: 'ZAG', logo: 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png', color: '#f97316' },
-    'Legia Warszawa': { id: '2', name: 'Legia Warszawa', shortName: 'LEG', logo: 'https://ext.same-assets.com/1250577607/695801781.png', color: '#dc2626' },
-    'Arka Gdynia': { id: '1', name: 'Arka Gdynia', shortName: 'ARK', logo: 'https://ext.same-assets.com/1250577607/451783410.png', color: '#FFD700' },
-    'Lech Poznań': { id: '3', name: 'Lech Poznań', shortName: 'LEC', logo: 'https://ext.same-assets.com/1250577607/3317158738.png', color: '#1e40af' },
-    'Lechia Gdańsk': { id: '5', name: 'Lechia Gdańsk', shortName: 'LGD', logo: 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', color: '#3b82f6' },
-    'Zawisza Bydgoszcz': { id: '12', name: 'Zawisza Bydgoszcz', shortName: 'ZAW', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png', color: '#f97316' },
-    'Wisła Kraków': { id: '13', name: 'Wisła Kraków', shortName: 'WIS', logo: 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg', color: '#dc2626' },
-    'Motor Lublin': { id: '9', name: 'Motor Lublin', shortName: 'MOT', logo: 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png', color: '#facc15' },
-    'Pogoń Szczecin': { id: '10', name: 'Pogoń Szczecin', shortName: 'POG', logo: 'https://ext.same-assets.com/1250577607/3079565559.png', color: '#1e3a8a' },
-    'Olimpia Elbląg': { id: '8', name: 'Olimpia Elbląg', shortName: 'OLI', logo: 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png', color: '#00ccff' },
-    'Chojniczanka Chojnice': { id: '11', name: 'Chojniczanka Chojnice', shortName: 'CHO', logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png', color: '#3b82f6' },
-    'Grom Nowy Staw': { id: '6', name: 'Grom Nowy Staw', shortName: 'GRO', logo: 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png', color: '#15803d' },
-    'Sokół Olsztyn': { id: '14', name: 'Sokół Olsztyn', shortName: 'SOK', logo: 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png', color: '#00ccff' },
-    'Unia Skierniewice': { id: '7', name: 'Unia Skierniewice', shortName: 'UNI', logo: 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png', color: '#facc15' }
-  };
+  const allTeams = [...teams, ...extraTeams];
+  const normalizedSearch = (teamName || '').toLowerCase().trim();
+  
+  const found = allTeams.find(t => 
+    t.name.toLowerCase() === normalizedSearch || 
+    t.shortName.toLowerCase() === normalizedSearch ||
+    t.id.toLowerCase() === normalizedSearch
+  );
+  
+  if (found) return found;
 
-  return teamMapping[teamName] || {
+  return {
     id: 'UNK',
-    name: teamName,
-    shortName: teamName.substring(0, 3).toUpperCase(),
+    name: teamName || 'TBD',
+    shortName: (teamName || 'TBD').substring(0, 3).toUpperCase(),
     logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
     color: '#3b82f6'
   };
 }
+
+const normalize = (s: string) => (s || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
 
 interface LiveMatchData {
   id: string;
@@ -60,8 +55,8 @@ interface LiveMatchData {
 interface ScheduleTableOverlayProps {
   isMinimized?: boolean;
   setIsMinimized?: (value: boolean) => void;
-  activeTab?: 'terminarz' | 'tabela' | 'live' | 'statystyki';
-  setActiveTab?: (tab: 'terminarz' | 'tabela' | 'live' | 'statystyki') => void;
+  activeTab?: 'terminarz' | 'tabela' | 'live';
+  setActiveTab?: (tab: 'terminarz' | 'tabela' | 'live') => void;
 }
 
 export function ScheduleTableOverlay({
@@ -71,7 +66,7 @@ export function ScheduleTableOverlay({
   setActiveTab: externalSetActiveTab
 }: ScheduleTableOverlayProps) {
   const { finishedMatches } = useMatchStats();
-  const [internalActiveTab, setInternalActiveTab] = useState<'terminarz' | 'tabela' | 'live' | 'statystyki'>('terminarz');
+  const [internalActiveTab, setInternalActiveTab] = useState<'terminarz' | 'tabela' | 'live'>('terminarz');
   const [internalIsMinimized, setInternalIsMinimized] = useState(false);
 
   const isMinimized = externalIsMinimized !== undefined ? externalIsMinimized : internalIsMinimized;
@@ -100,10 +95,16 @@ export function ScheduleTableOverlay({
         
         for (const apiMatch of apiMatchesList) {
           if (apiMatch.isActive || apiMatch.status === 'active') {
-            const matchInSchedule = fixtures.find(m =>
-              (m.homeTeam?.name === apiMatch.teamA || m.homeTeam?.shortName === apiMatch.teamA) &&
-              (m.awayTeam?.name === apiMatch.teamB || m.awayTeam?.shortName === apiMatch.teamB)
-            );
+            const matchInSchedule = fixtures.find(m => {
+              const ta = normalize(apiMatch.teamA);
+              const tb = normalize(apiMatch.teamB);
+              const ha = [normalize(m.homeTeam?.name), normalize(m.homeTeam?.shortName), normalize(m.homeTeam?.id)];
+              const aa = [normalize(m.awayTeam?.name), normalize(m.awayTeam?.shortName), normalize(m.awayTeam?.id)];
+              
+              const homeOk = ha.some(h => h && (h === ta || ta.includes(h) || h.includes(ta)));
+              const awayOk = aa.some(a => a && (a === tb || tb.includes(a) || a.includes(tb)));
+              return homeOk && awayOk;
+            });
             
             if (matchInSchedule) {
               liveData.push({
@@ -123,6 +124,25 @@ export function ScheduleTableOverlay({
                   score: apiMatch.scoreB ?? 0
                 }
               });
+            } else {
+              // Fallback for matches not in fixtures
+              liveData.push({
+                id: apiMatch.uuid,
+                status: apiMatch.status,
+                timer: apiMatch.timer || '0:00',
+                period: apiMatch.period || 'Pierwsza połowa',
+                date: new Date().toISOString(),
+                homeTeam: {
+                  shortName: apiMatch.teamA?.substring(0, 3).toUpperCase() || 'HOM',
+                  logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+                  score: apiMatch.scoreA ?? 0
+                },
+                awayTeam: {
+                  shortName: apiMatch.teamB?.substring(0, 3).toUpperCase() || 'AWA',
+                  logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+                  score: apiMatch.scoreB ?? 0
+                }
+              });
             }
           }
         }
@@ -139,7 +159,7 @@ export function ScheduleTableOverlay({
     fetchLiveMatches();
     const interval = setInterval(fetchLiveMatches, 30000); // Increased from 5s to 30s
     return () => clearInterval(interval);
-  }, []);
+  }, [fixtures]);
 
   useEffect(() => {
     const fetchFixtures = async () => {
@@ -151,12 +171,12 @@ export function ScheduleTableOverlay({
         if (response.ok) {
           const data = await response.json();
           console.log('Fixtures data:', data);
-          const fixturesData = data.fixtures || [];
+          const fixturesData = Array.isArray(data) ? data : (data.fixtures || []);
           console.log('Fixtures array length:', fixturesData.length);
           if (Array.isArray(fixturesData) && fixturesData.length > 0) {
             // Map API data to expected format
             const mappedFixtures = fixturesData.map(fixture => ({
-              id: fixture.id.toString(),
+              id: fixture.matchUuid || fixture.id.toString(),
               round: fixture.round,
               date: fixture.date,
               homeTeam: getTeamFromName(fixture.teamA),
@@ -165,7 +185,7 @@ export function ScheduleTableOverlay({
               awayScore: fixture.scoreB,
               stadium: "Stadion",
               category: "Liga",
-              status: (fixture.scoreA === 0 && fixture.scoreB === 0 ? 'upcoming' : 'finished') as 'upcoming' | 'finished'
+              status: ((fixture.status === 'played' || fixture.status === 'finished' || fixture.isFinished || (fixture.scoreA > 0 || fixture.scoreB > 0)) ? 'finished' : 'upcoming') as 'finished' | 'upcoming'
             }));
             console.log('Mapped fixtures:', mappedFixtures.slice(0, 3));
             setFixtures(mappedFixtures);
@@ -212,10 +232,11 @@ export function ScheduleTableOverlay({
   return (
     <div className={`fixed right-4 top-1/2 -translate-y-1/2 w-96 z-50 transition-all duration-300 ${isMinimized ? 'translate-x-[340px]' : 'translate-x-0'}`}>
       {/* Toggle Button */}
-      <button 
+      <button
         onClick={() => setIsMinimized(!isMinimized)}
         className="absolute left-[-48px] top-0 w-12 h-12 bg-black/80 backdrop-blur-xl text-[#00ccff] flex items-center justify-center rounded-l-2xl shadow-2xl hover:bg-black transition-all border-y border-l border-white/10 group"
         title={isMinimized ? "Rozwiń" : "Zminimalizuj"}
+        suppressHydrationWarning={true}
       >
         {isMinimized ? (
           <Maximize2 size={20} className="group-hover:scale-110 transition-transform" />
@@ -273,19 +294,6 @@ export function ScheduleTableOverlay({
               <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
             )}
           </span>
-        </button>
-        <button
-          onClick={() => setActiveTab('statystyki')}
-          className={`relative flex-1 py-3 text-[10px] font-black tracking-widest text-center transition-all duration-300 rounded-xl z-10 ${
-            activeTab === 'statystyki'
-              ? 'text-white'
-              : 'text-gray-500 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          {activeTab === 'statystyki' && (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00ccff] to-[#0066ff] rounded-xl -z-10 shadow-[0_0_20px_rgba(0,204,255,0.3)]" />
-          )}
-          STATYSTYKI
         </button>
       </div>
 
@@ -476,12 +484,16 @@ export function ScheduleTableOverlay({
                             <span className="text-base font-black text-green-400 tracking-tight">
                               {finishedMatches[match.id || index].homeScore}:{finishedMatches[match.id || index].awayScore}
                             </span>
+                          ) : (match.status === 'finished') ? (
+                            <span className="text-base font-black text-white tracking-tight">
+                              {match.homeScore ?? 0}:{match.awayScore ?? 0}
+                            </span>
                           ) : (
                             <span className="text-base font-black text-white tracking-tight">{match.date ? formatTime(match.date) : 'TBD'}</span>
                           )}
                         </div>
                         <div className="flex flex-col items-center">
-                          {finishedMatches[match.id || index] ? (
+                          {(finishedMatches[match.id || index] || match.status === 'finished') ? (
                             <span className="text-[8px] font-black text-green-400 uppercase">ZAKOŃCZONY</span>
                           ) : (
                             <span className="text-[8px] font-black text-[#00ccff] italic uppercase">{match.stadium ? match.stadium.split(' ')[0] + ' ' + (match.stadium.split(' ')[1] || '') + '...' : 'Stadion'}</span>
@@ -531,17 +543,6 @@ export function ScheduleTableOverlay({
       {activeTab === 'tabela' && (
         <div className="bg-[#0a0a0a]/90 text-white max-h-[600px] overflow-y-auto scrollbar-hide">
           <LeagueTable isInTab={true} compact={true} />
-        </div>
-      )}
-
-      {activeTab === 'statystyki' && (
-        <div className="bg-[#0a0a0a]/90 text-white max-h-[600px] overflow-y-auto scrollbar-hide">
-          <div className="bg-gradient-to-r from-[#1a1a1a] via-[#2a2a2a] to-[#1a1a1a] px-4 py-3 font-black text-[11px] tracking-widest text-center sticky top-0 z-10 border-b border-white/5 uppercase">
-            Statystyki Zawodników
-          </div>
-          <div className="p-0">
-            <Statistics isInTab={true} />
-          </div>
         </div>
       )}
       </div>

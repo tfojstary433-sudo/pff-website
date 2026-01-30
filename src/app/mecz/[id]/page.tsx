@@ -3,11 +3,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { matches, Match, teams, standings, friendlyMatchesData, findMatchById } from '@/lib/data';
+import { matches, Match, teams, extraTeams, standings, friendlyMatchesData, findMatchById } from '@/lib/data';
+import { REPLIT_API_BASE_URL, API_ENDPOINTS } from '@/lib/constants';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { useParams } from 'next/navigation';
 import { RobloxAvatar } from '@/components/roblox-avatar';
+
+const isUuid = (v: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v);
+const isNumeric = (v: string) => /^\d+$/.test(v);
+
+const normalizeTeamName = (name: string) =>
+  (name || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+
 
 interface Goal {
   minute: number;
@@ -361,16 +374,35 @@ export default function MatchDetail() {
   
   const [activeTab, setActiveTab] = useState<'na-żywo' | 'relacja' | 'składy' | 'statystyki'>('relacja');
   const [apiData, setApiData] = useState<MatchApiData | null>(null);
+  const [preMatchInfo, setPreMatchInfo] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasAutoSwitched = useRef(false);
 
+  const allTeams = [...teams, ...extraTeams];
+
   const getHomeTeam = () => {
     if (match?.homeTeam) return match.homeTeam;
     if (apiData) {
-      const found = teams.find(t => t.name === apiData.match.teamA || t.shortName === apiData.match.teamA);
+      const apiTeamA = apiData.match.teamA;
+      const found = allTeams.find(t => 
+        normalizeTeamName(t.name) === normalizeTeamName(apiTeamA) || 
+        normalizeTeamName(t.shortName) === normalizeTeamName(apiTeamA) ||
+        normalizeTeamName(t.id) === normalizeTeamName(apiTeamA)
+      );
       if (found) return found;
       return { name: apiData.match.teamA, shortName: apiData.match.teamA, logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png', id: '' };
+    }
+    if (preMatchInfo) {
+      const teamA = preMatchInfo.teamA || preMatchInfo.homeTeam || preMatchInfo.home;
+      const teamAName = typeof teamA === 'string' ? teamA : (teamA?.name || teamA?.shortName);
+      const found = allTeams.find(t => 
+        normalizeTeamName(t.name) === normalizeTeamName(teamAName) || 
+        normalizeTeamName(t.shortName) === normalizeTeamName(teamAName) ||
+        normalizeTeamName(t.id) === normalizeTeamName(teamAName)
+      );
+      if (found) return found;
+      return { name: teamAName, shortName: teamAName, logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png', id: '' };
     }
     return { name: 'TBD', shortName: 'TBD', logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png', id: '' };
   };
@@ -378,9 +410,25 @@ export default function MatchDetail() {
   const getAwayTeam = () => {
     if (match?.awayTeam) return match.awayTeam;
     if (apiData) {
-      const found = teams.find(t => t.name === apiData.match.teamB || t.shortName === apiData.match.teamB);
+      const apiTeamB = apiData.match.teamB;
+      const found = allTeams.find(t => 
+        normalizeTeamName(t.name) === normalizeTeamName(apiTeamB) || 
+        normalizeTeamName(t.shortName) === normalizeTeamName(apiTeamB) ||
+        normalizeTeamName(t.id) === normalizeTeamName(apiTeamB)
+      );
       if (found) return found;
       return { name: apiData.match.teamB, shortName: apiData.match.teamB, logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png', id: '' };
+    }
+    if (preMatchInfo) {
+      const teamB = preMatchInfo.teamB || preMatchInfo.awayTeam || preMatchInfo.away;
+      const teamBName = typeof teamB === 'string' ? teamB : (teamB?.name || teamB?.shortName);
+      const found = allTeams.find(t => 
+        normalizeTeamName(t.name) === normalizeTeamName(teamBName) || 
+        normalizeTeamName(t.shortName) === normalizeTeamName(teamBName) ||
+        normalizeTeamName(t.id) === normalizeTeamName(teamBName)
+      );
+      if (found) return found;
+      return { name: teamBName, shortName: teamBName, logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png', id: '' };
     }
     return { name: 'TBD', shortName: 'TBD', logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png', id: '' };
   };
@@ -405,12 +453,15 @@ export default function MatchDetail() {
 
     return teamStr === 'home' ||
            teamStr === 'gospodarz' ||
+           teamStr === 'team a' ||
+           teamStr === 'teama' ||
            teamStr === apiTeamA ||
            teamStr === hName ||
            teamStr === hShort ||
            hName.includes(teamStr) ||
-           teamStr.includes(hName);
-  }, [homeTeam.name, homeTeam.shortName, apiData?.match.teamA]);
+           teamStr.includes(hName) ||
+           (homeTeam.id && teamStr === homeTeam.id.toLowerCase());
+  }, [homeTeam.name, homeTeam.shortName, homeTeam.id, apiData?.match.teamA]);
 
   const isAwayTeam = useCallback((event: any) => {
     if (!event || !event.team) return false;
@@ -421,12 +472,15 @@ export default function MatchDetail() {
 
     return teamStr === 'away' ||
            teamStr === 'gość' ||
+           teamStr === 'team b' ||
+           teamStr === 'teamb' ||
            teamStr === apiTeamB ||
            teamStr === aName ||
            teamStr === aShort ||
            aName.includes(teamStr) ||
-           teamStr.includes(aName);
-  }, [awayTeam.name, awayTeam.shortName, apiData?.match.teamB]);
+           teamStr.includes(aName) ||
+           (awayTeam.id && teamStr === awayTeam.id.toLowerCase());
+  }, [awayTeam.name, awayTeam.shortName, awayTeam.id, apiData?.match.teamB]);
 
   const calculatedScore = apiData?.events?.goals ? apiData.events.goals.reduce((acc, goal) => {
     if (isHomeTeam(goal)) acc.scoreA++;
@@ -446,11 +500,11 @@ export default function MatchDetail() {
       if (stored) {
         const finished = JSON.parse(stored);
         setFinishedMatches(finished);
-        setIsMatchFinished(finished[id] || false);
-        setIsMatchActive(!(finished[id] || false));
+        setIsMatchFinished(finished[id] || match?.status === 'finished' || false);
+        setIsMatchActive(false);
 
         // Load match result data for finished matches
-        if (finished[id]) {
+        if (finished[id] || match?.status === 'finished') {
           const matchStats = localStorage.getItem('matchStats');
           if (matchStats) {
             const stats = JSON.parse(matchStats);
@@ -459,44 +513,145 @@ export default function MatchDetail() {
         }
       } else {
         setIsMatchFinished(false);
-        setIsMatchActive(true);
+        setIsMatchActive(false);
       }
     };
     loadFinished();
 
     const fetchMatchData = async () => {
-      if (!isMatchActive) return;
-      
+      setLoading(true);
+      setError(null);
       try {
-        const response = await fetch(`/api/matches/${id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setApiData(data);
+        let loaded = false;
+
+        // 1) If URL id is UUID, try Replit first
+        if (isUuid(id)) {
+          try {
+            const replitRes = await fetch(`${REPLIT_API_BASE_URL}/api/matches/${id}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            if (replitRes.ok) {
+              const replitData = await replitRes.json();
+              setApiData(replitData);
+              loaded = true;
+            }
+          } catch {}
         }
-      } catch (err) {
+
+        // 2) Fallback to local API if not loaded (e.g., non-UUID route or Replit unavailable)
+        if (!loaded) {
+          try {
+            const response = await fetch(`/api/matches/${id}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            if (response.ok) {
+              const data = await response.json();
+              setApiData(data);
+              loaded = true;
+            }
+          } catch {}
+        }
+
+        // 3) Try to fetch from schedule if still not loaded (it might be a scheduled match)
+        if (!loaded) {
+          try {
+            const res = await fetch(API_ENDPOINTS.SCHEDULE, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            if (res.ok) {
+              const data = await res.json();
+              const list = Array.isArray(data) ? data : (Array.isArray(data?.fixtures) ? data.fixtures : (Array.isArray(data?.matches) ? data.matches : []));
+              const found = list.find((m: any) => m.matchUuid === id || m.id?.toString() === id);
+              if (found) {
+                setPreMatchInfo(found);
+                loaded = true;
+              }
+            }
+          } catch {}
+        }
+
+        if (!loaded && !match) {
+          throw new Error('Nie udało się znaleźć danych tego meczu');
+        }
+      } catch (err: any) {
         console.error('Error fetching match data:', err);
+        setError(err.message || 'Nie udało się pobrać danych meczu');
       } finally {
         setLoading(false);
       }
     };
 
     fetchMatchData();
-    const interval = setInterval(fetchMatchData, 5000);
-    return () => clearInterval(interval);
-  }, [id, isMatchActive]);
+    let interval: NodeJS.Timeout;
+    if (isMatchActive) {
+      interval = setInterval(fetchMatchData, 5000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [id, isMatchActive, match]);
 
   useEffect(() => {
-    if (isMatchActive && !hasAutoSwitched.current) {
+    if (apiData) {
+      const now = new Date();
+      const matchDate = match?.date ? new Date(match.date) : now;
+      const isPast = matchDate < now;
+
+      if (isPast) {
+        setIsMatchFinished(apiData.match.status !== 'active');
+        setIsMatchActive(apiData.match.status === 'active');
+      } else {
+        setIsMatchFinished(match?.status === 'finished' || false);
+        setIsMatchActive(false);
+      }
+    }
+  }, [apiData, match]);
+
+  useEffect(() => {
+    if (isMatchFinished && !hasAutoSwitched.current) {
+      setActiveTab('relacja');
+      hasAutoSwitched.current = true;
+    } else if (isMatchActive && !hasAutoSwitched.current) {
       setActiveTab('na-żywo');
       hasAutoSwitched.current = true;
     }
-  }, [isMatchActive]);
+  }, [isMatchFinished, isMatchActive]);
+
+  useEffect(() => {
+    const isPre = !isMatchActive && !isMatchFinished;
+    if (!isPre) return;
+
+    const fetchSchedule = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.SCHEDULE, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.fixtures) ? data.fixtures : (Array.isArray(data?.matches) ? data.matches : []));
+        
+        // Try to find by ID first
+        let found = list.find((m: any) => m.matchUuid === id || m.id?.toString() === id);
+        
+        // Fallback to team names matching
+        if (!found) {
+          const n = (s: string) => normalizeTeamName(s);
+          const homeKeys = [n(homeTeam.name), n(homeTeam.shortName), n(homeTeam.id)];
+          const awayKeys = [n(awayTeam.name), n(awayTeam.shortName), n(awayTeam.id)];
+          found = list.find((m: any) => {
+            const ta = n(m.teamA || m.homeTeam || m.home || m.host || '');
+            const tb = n(m.teamB || m.awayTeam || m.away || m.guest || '');
+            const homeOk = homeKeys.some(t => t && (t === ta || ta.includes(t) || t.includes(ta)));
+            const awayOk = awayKeys.some(t => t && (t === tb || tb.includes(t) || t.includes(tb)));
+            return homeOk && awayOk;
+          });
+        }
+        
+        if (found) setPreMatchInfo(found);
+      } catch {}
+    };
+
+    fetchSchedule();
+  }, [isMatchActive, isMatchFinished, homeTeam, awayTeam, id]);
 
   const [finishedMatches, setFinishedMatches] = useState<Record<string, boolean>>({});
   const [showGoalAnimation, setShowGoalAnimation] = useState(false);
   const [goalInfo, setGoalInfo] = useState<{ team: string; player: string; logo?: string; side: 'home' | 'away' } | null>(null);
   const prevScoreRef = useRef({ scoreA: 0, scoreB: 0 });
   const isInitialLoad = useRef(true);
+  const isPreMatch = !isMatchActive && !isMatchFinished;
 
   useEffect(() => {
     if (apiData && calculatedScore) {
@@ -543,7 +698,7 @@ export default function MatchDetail() {
     );
   }
 
-  if (!match && !apiData && !loading) {
+  if (!match && !apiData && !preMatchInfo && !loading) {
     return (
       <div className="flex flex-col">
         <Navbar />
@@ -575,6 +730,27 @@ export default function MatchDetail() {
       minute: '2-digit',
     });
   };
+
+  // Build fallback events from finishedMatchData scorers when API has no events
+  const buildEventsFromFinished = (scorers: any[]): MatchEvents => {
+    const goals = (scorers || []).map((s: any) => ({
+      minute: typeof s.minute === 'number' ? s.minute : (typeof s.minute === 'string' && /^\d+$/.test(s.minute) ? parseInt(s.minute, 10) : undefined as any),
+      player: s.playerName,
+      team: s.teamId === homeTeam.id ? 'home' : 'away',
+      isPenalty: false,
+      number: s.number
+    }));
+    return { goals, cards: [], substitutions: [] };
+  };
+
+  const eventsData: MatchEvents | null = apiData?.events
+    ? apiData.events
+    : (finishedMatchData?.scorers ? buildEventsFromFinished(finishedMatchData.scorers) : null);
+
+  const scoreA = finishedMatchData ? finishedMatchData.homeScore : (apiData ? (calculatedScore?.scoreA ?? apiData.match.scoreA) : preMatchInfo?.scoreA ?? preMatchInfo?.homeScore ?? match?.homeScore ?? 0);
+  const scoreB = finishedMatchData ? finishedMatchData.awayScore : (apiData ? (calculatedScore?.scoreB ?? apiData.match.scoreB) : preMatchInfo?.scoreB ?? preMatchInfo?.awayScore ?? match?.awayScore ?? 0);
+
+  const hasScore = scoreA > 0 || scoreB > 0 || isMatchActive || isMatchFinished;
 
   return (
     <>
@@ -641,7 +817,7 @@ export default function MatchDetail() {
         }
       `}</style>
 
-      {isMatchActive ? (
+      {isMatchActive || isMatchFinished || apiData ? (
         <div className="relative min-h-screen bg-[#020617] text-white">
           {/* Background Gradients */}
           <div className="fixed inset-0 pointer-events-none z-0">
@@ -661,11 +837,13 @@ export default function MatchDetail() {
                           <div className="absolute w-4 h-4 rounded-full bg-green-500/30 animate-ping"></div>
                           <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,1)] z-10"></div>
                         </>
-                      ) : (
+                      ) : isMatchActive ? (
                         <>
                           <div className="absolute w-4 h-4 rounded-full bg-red-500/30 animate-ping"></div>
                           <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,1)] z-10"></div>
                         </>
+                      ) : (
+                        <div className="w-3 h-3 rounded-full bg-white/30"></div>
                       )}
                     </div>
                     <span className="text-sm font-black uppercase tracking-[0.4em] text-white flex items-center gap-3">
@@ -675,14 +853,27 @@ export default function MatchDetail() {
                           <span className="w-px h-4 bg-white/20 mx-1"></span>
                           WYNIK KOŃCOWY
                         </>
-                      ) : (
+                      ) : isMatchActive ? (
                         <>
                           <span className="text-red-500 animate-pulse-live">NA ŻYWO</span>
                           <span className="w-px h-4 bg-white/20 mx-1"></span>
                           {apiData?.match.timer || '00:00'} <span className="text-white/30 font-medium">|</span> {apiData?.match.period || 'MECZ TRWA'}
                         </>
+                      ) : (
+                        <>
+                          <span className="text-white/60">PRZED MECZEM</span>
+                          <span className="w-px h-4 bg-white/20 mx-1"></span>
+                          {preMatchInfo?.time ?? formatTime(preMatchInfo?.date ?? preMatchInfo?.dateTime ?? match?.date)} <span className="text-white/30 font-medium">|</span> {formatDate(preMatchInfo?.date ?? preMatchInfo?.dateTime ?? match?.date)}
+                        </>
                       )}
                     </span>
+                    {(match?.stadium || match?.category) && (
+                      <div className="hidden md:flex items-center gap-3 ml-4 pl-4 border-l border-white/10">
+                        {match.stadium && <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">{match.stadium}</span>}
+                        {match.stadium && match.category && <span className="w-1 h-1 rounded-full bg-white/20"></span>}
+                        {match.category && <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{match.category}</span>}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -709,7 +900,7 @@ export default function MatchDetail() {
                     <div className="absolute -inset-6 bg-gradient-to-r from-blue-600/40 to-indigo-600/40 rounded-[60px] blur-3xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
                     <div className="bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[60px] px-8 md:px-16 py-8 md:py-12 flex flex-col items-center justify-center min-w-[160px] md:min-w-[340px] shadow-2xl relative overflow-hidden ring-1 ring-white/10">
                       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-                      <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-blue-400/60 mb-4 relative z-10">WYNIK KOŃCOWY</span>
+                      <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-blue-400/60 mb-4 relative z-10">{isMatchFinished ? 'WYNIK KOŃCOWY' : isMatchActive ? 'WYNIK NA ŻYWO' : 'ZAPLANOWANY'}</span>
                       <div className="text-6xl md:text-9xl font-black tracking-tighter flex items-center gap-4 md:gap-8 tabular-nums relative z-10">
                         <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{finishedMatchData ? finishedMatchData.homeScore : (apiData ? (calculatedScore?.scoreA ?? apiData.match.scoreA) : match?.homeScore ?? '0')}</span>
                         <span className="text-white/10">:</span>
@@ -751,7 +942,7 @@ export default function MatchDetail() {
                           <span className="text-white/20 text-[9px] font-black uppercase tracking-widest">GOL</span>
                         </div>
                         <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
-                          {goal.minute || '90'}'
+                          {goal.minute != null ? `${goal.minute}'` : ''}
                         </div>
                       </div>
                     ))}
@@ -761,7 +952,7 @@ export default function MatchDetail() {
                     {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === awayTeam.id) : apiData?.events?.goals?.filter(g => isAwayTeam(g)) || []).map((goal: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/5 transition-all group cursor-default">
                         <div className="w-9 h-9 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
-                          {goal.minute || '90'}'
+                          {goal.minute != null ? `${goal.minute}'` : ''}
                         </div>
                         <div className="flex flex-col items-start">
                           <span className="text-white text-sm font-black uppercase tracking-wide group-hover:text-red-400 transition-colors">{goal.playerName || goal.player}</span>
@@ -848,10 +1039,10 @@ export default function MatchDetail() {
                   <div className="max-w-5xl mx-auto mt-16">
                     <div className="bg-white/5 backdrop-blur-2xl rounded-[30px] p-8 border border-white/10 shadow-2xl">
                       <h3 className="text-blue-400 text-2xl font-black text-center mb-10 tracking-[0.2em] uppercase">RELACJA MECZOWA</h3>
-                      {apiData?.events && (apiData.events.goals.length > 0 || apiData.events.cards.length > 0 || apiData.events.substitutions.length > 0) ? (
+                      {eventsData && (eventsData.goals.length > 0 || eventsData.cards.length > 0 || eventsData.substitutions.length > 0) ? (
                         <div className="space-y-10">
                   {(() => {
-                    const sortedGoals = [...apiData.events.goals].sort((a, b) => a.minute - b.minute);
+                    const sortedGoals = [...eventsData.goals].sort((a, b) => a.minute - b.minute);
                     const goalScores = new Map<any, {scoreA: number, scoreB: number}>();
                     let currentScoreA = 0;
                     let currentScoreB = 0;
@@ -870,14 +1061,32 @@ export default function MatchDetail() {
                     });
                     
                     return [
-                      ...apiData.events.goals.map((e) => ({...e, type: 'goal' as const, _id: `goal-${Math.random()}`, original: e})),
-                      ...apiData.events.cards.map((e, i) => ({...e, type: e.type, _id: `card-${i}`})),
-                      ...apiData.events.substitutions.map((e, i) => ({...e, type: 'substitution' as const, _id: `sub-${i}`})),
-                      ...(apiData.events.cancelledGoals || []).map((e, i) => ({...e, type: 'goal_cancelled' as const, _id: `cancelled-${i}`})),
-                      ...(apiData.timeline || []).filter(e => e.type === 'goal_cancelled').map((e, i) => ({...e, type: 'goal_cancelled' as const, _id: `timeline-cancelled-${i}`}))
+                      ...eventsData.goals.map((e) => ({...e, type: 'goal' as const, _id: `goal-${Math.random()}`, original: e})),
+                      ...eventsData.cards.map((e, i) => ({...e, type: e.type, _id: `card-${i}`})),
+                      ...eventsData.substitutions.map((e, i) => ({...e, type: 'substitution' as const, _id: `sub-${i}`})),
+                      ...(eventsData.cancelledGoals || []).map((e, i) => ({...e, type: 'goal_cancelled' as const, _id: `cancelled-${i}`})),
+                      ...(apiData?.timeline || []).filter(e => e.type === 'goal_cancelled').map((e, i) => ({...e, type: 'goal_cancelled' as const, _id: `timeline-cancelled-${i}`}))
                     ].sort((a, b) => b.minute - a.minute).map((event: any) => {
                       const isHomeEvent = isHomeTeam(event);
-                      const scoringTeam = isHomeEvent ? homeTeam : awayTeam;
+                      const isAwayEvent = isAwayTeam(event);
+                      
+                      let scoringTeam = isHomeEvent ? homeTeam : awayTeam;
+                      
+                      // Fallback: if it's neither home nor away according to isHome/isAway, 
+                      // but event.team matches away better, or if it's just not matching at all,
+                      // try to find the team in our global teams list.
+                      if (!isHomeEvent && !isAwayEvent && event.team) {
+                        const tName = event.team.toString().toLowerCase().trim();
+                        const foundTeam = teams.find(t => 
+                          t.name.toLowerCase().includes(tName) || 
+                          t.shortName.toLowerCase() === tName ||
+                          t.id.toLowerCase() === tName
+                        );
+                        if (foundTeam) {
+                          scoringTeam = foundTeam;
+                        }
+                      }
+                      
                       const teamLogo = scoringTeam.logo;
                       
                       if (event.type === 'goal') {
@@ -896,14 +1105,14 @@ export default function MatchDetail() {
                               {/* Minute & Avatar */}
                               <div className="relative shrink-0 flex items-center gap-6">
                                 <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-black text-xl text-blue-400 shadow-lg relative z-20">
-                                  {event.minute}'
+                                  {event.minute != null ? `${event.minute}'` : ''}
                                 </div>
-                                <div className="relative group/avatar">
+                                <Link href={`/gracz/${encodeURIComponent(event.player)}`} className="relative group/avatar">
                                   <div className="absolute -inset-2 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover/avatar:opacity-100 transition-opacity"></div>
                                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-white/10 shadow-2xl bg-black/20 relative z-10 transition-transform group-hover/avatar:scale-105">
                                     <RobloxAvatar username={event.player} className="w-full h-full object-cover scale-110" />
                                   </div>
-                                </div>
+                                </Link>
                               </div>
 
                               {/* Info */}
@@ -918,7 +1127,9 @@ export default function MatchDetail() {
                                   </div>
                                 </div>
                                 <h4 className={`text-white text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight group-hover:text-blue-400 transition-colors drop-shadow-2xl ${isHomeEvent ? 'text-left' : 'text-right'}`}>
-                                  {event.player}
+                                  <Link href={`/gracz/${encodeURIComponent(event.player)}`}>
+                                    {event.player}
+                                  </Link>
                                 </h4>
                               </div>
 
@@ -946,7 +1157,7 @@ export default function MatchDetail() {
                             <div className={`relative z-10 flex items-center gap-6 p-6 md:p-8 ${isHomeEvent ? 'flex-row' : 'flex-row-reverse'}`}>
                               <div className="relative shrink-0 flex items-center gap-6">
                                 <div className="w-14 h-14 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center font-black text-xl text-red-400 shadow-lg relative z-20">
-                                  {event.minute}'
+                                  {event.minute != null ? `${event.minute}'` : ''}
                                 </div>
                                 <div className="relative opacity-40">
                                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-red-500/20 bg-black/40">
@@ -976,7 +1187,7 @@ export default function MatchDetail() {
                       return (
                         <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-white/5 border border-white/10 backdrop-blur-3xl p-6 md:p-8 flex items-center gap-6 transition-all hover:bg-white/[0.08] group">
                           <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-black text-xl text-blue-400 shadow-lg shrink-0">
-                            {event.minute}'
+                            {event.minute != null ? `${event.minute}'` : ''}
                           </div>
                           
                           <div className="flex items-center gap-4 flex-1">
@@ -1018,7 +1229,7 @@ export default function MatchDetail() {
                             ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-500'
                             : 'bg-red-600/20 border-red-500/30 text-red-400'
                         }`}>
-                          {event.minute}'
+                          {event.minute != null ? `${event.minute}'` : ''}
                         </div>
                         
                         <div className="flex items-center gap-4 flex-1">
@@ -1309,7 +1520,7 @@ export default function MatchDetail() {
                 <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full"></div>
                 <div className="relative px-8 md:px-12 py-2 md:py-3 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full flex items-center gap-3 md:gap-5 shadow-2xl ring-1 ring-white/10">
                   <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]"></div>
-                  <span className="text-white text-[10px] md:text-sm font-black uppercase tracking-[0.4em]">{formatDate(match?.date)}</span>
+                  <span className="text-white text-[10px] md:text-sm font-black uppercase tracking-[0.4em]">{formatDate(match?.date || preMatchInfo?.date)}</span>
                   <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]"></div>
                 </div>
               </div>
@@ -1322,7 +1533,7 @@ export default function MatchDetail() {
                   <div className="flex items-center gap-4 md:gap-6 lg:gap-10 flex-1 justify-center md:justify-end group w-full">
                     <div className="flex flex-col items-center md:items-end order-2 md:order-1">
                       <h2 className="text-white text-3xl md:text-5xl lg:text-6xl font-[1000] uppercase tracking-tighter leading-[0.8] md:leading-[0.85] text-center md:text-right transition-transform group-hover:scale-105">
-                        {homeTeam.name.split(' ').map((word, i) => (
+                        {homeTeam.name.split(' ').map((word: string, i: number) => (
                           <div key={i} className="whitespace-nowrap">{word}</div>
                         ))}
                       </h2>
@@ -1350,33 +1561,21 @@ export default function MatchDetail() {
                     <div className="bg-black/40 backdrop-blur-2xl px-8 md:px-10 py-8 md:py-12 rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 flex flex-col items-center justify-center min-w-[240px] md:min-w-[280px] shadow-2xl relative group/box ring-1 ring-white/5">
                       <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover/box:opacity-100 transition-opacity rounded-[2.5rem] md:rounded-[3.5rem]"></div>
                       
-                      {apiData ? (
-                        <div className="flex flex-col items-center gap-2 relative z-10">
-                          <div className="text-white font-black text-6xl md:text-7xl tracking-tighter tabular-nums drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                            {calculatedScore?.scoreA ?? apiData.match.scoreA} : {calculatedScore?.scoreB ?? apiData.match.scoreB}
-                          </div>
-                          <div className="flex items-center gap-2 mt-2">
-                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]"></div>
-                            <span className="text-xs font-black uppercase tracking-[0.4em] text-red-500">{apiData.match.period || 'LIVE'}</span>
-                          </div>
+                      <div className="flex flex-col items-center relative z-10 text-center">
+                        <div className="text-white font-[1000] text-6xl md:text-7xl lg:text-8xl tracking-tighter mb-4 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] leading-none">
+                          {match?.time || preMatchInfo?.time || formatTime(match?.date || preMatchInfo?.date)}
                         </div>
-                      ) : (
-                        <div className="flex flex-col items-center relative z-10 text-center">
-                          <div className="text-white font-[1000] text-6xl md:text-7xl lg:text-8xl tracking-tighter mb-4 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] leading-none">
-                            {match?.time || formatTime(match?.date)}
-                          </div>
-                          {match?.stadium && (
-                            <span className="text-[#00ccff] text-[10px] md:text-xs font-black uppercase tracking-[0.2em] block mb-2 px-4 max-w-[200px] md:max-w-xs mx-auto">
-                              {match.stadium}
-                            </span>
-                          )}
-                          {match?.category && (
-                            <span className="text-white/20 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] block">
-                              {match.category}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                        {match?.stadium && (
+                          <span className="text-[#00ccff] text-[10px] md:text-xs font-black uppercase tracking-[0.2em] block mb-2 px-4 max-w-[200px] md:max-w-xs mx-auto">
+                            {match.stadium}
+                          </span>
+                        )}
+                        {match?.category && (
+                          <span className="text-white/20 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] block">
+                            {match.category}
+                          </span>
+                        )}
+                      </div>
                       
                       {!id.startsWith('f') && !id.startsWith('c') && (
                         <>
@@ -1417,7 +1616,7 @@ export default function MatchDetail() {
 
                     <div className="flex flex-col items-center md:items-start">
                       <h2 className="text-white text-3xl md:text-5xl lg:text-6xl font-[1000] uppercase tracking-tighter leading-[0.8] md:leading-[0.85] text-center md:text-left transition-transform group-hover:scale-105">
-                        {awayTeam.name.split(' ').map((word, i) => (
+                        {awayTeam.name.split(' ').map((word: string, i: number) => (
                           <div key={i} className="whitespace-nowrap">{word}</div>
                         ))}
                       </h2>

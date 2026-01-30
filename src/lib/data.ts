@@ -278,6 +278,22 @@ export const teams: Team[] = [
     color: '#dc2626',
     stadium: 'Stadion Miejski w Chojnicach'
   },
+  {
+    id: 'JAG',
+    name: 'Jagiellonia Białystok',
+    shortName: 'Jagiellonia',
+    logo: 'https://i.ibb.co/1JmyhfVn/obraz-2026-01-29-161936924.png',
+    color: '#facc15',
+    stadium: 'Stadion Miejski w Białymstoku'
+  },
+  {
+    id: 'WPL',
+    name: 'Wisła Płock',
+    shortName: 'Wisła Płock',
+    logo: 'https://i.ibb.co/4gC8q4dS/obraz-2026-01-29-162036024.png',
+    color: '#1e40af',
+    stadium: 'Stadion im. Kazimierza Górskiego'
+  },
 ];
 
 // Map club IDs to Firebase keys
@@ -293,8 +309,11 @@ export const clubToFirebaseKey: { [key: string]: string } = {
   'SOK': 'Club 9', // Sokół Olsztyn
   'WIS': 'Club 10', // Wisła Kraków
   'GRO': 'Club 11', // Grom Nowy Staw
-  'UNK12': 'Club 12', // Unknown Club 12
-  'UNK14': 'Club 14', // Unknown Club 14
+  'MOT': 'Club 12', // Motor Lublin
+  'OLI': 'Club 13', // Olimpia Elbląg
+  'CHO': 'Club 14', // Chojniczanka Chojnice
+  'JAG': 'Club 15', // Jagiellonia Białystok
+  'WPL': 'Club 16', // Wisła Płock
   'SED': 'Referee', // Sędziowie
   'MED': 'Media'     // Media
 };
@@ -310,8 +329,7 @@ export const extraTeams: Team[] = [
 export const matches: Match[] = [
   // Runda 1
   { id: 'm1', homeTeam: teams[0], awayTeam: teams[1], date: '2026-01-25T20:30:00', round: 1, status: 'upcoming', stadium: teams[0].stadium, category: 'EKSTRAKLASA' },
-  { id: 'm2', homeTeam: teams[2], awayTeam: teams[3], date: '2026-01-25T17:00:00', round: 1, status: 'upcoming', stadium: teams[2].stadium, category: 'EKSTRAKLASA' },
-  { id: 'm3', homeTeam: teams[4], awayTeam: teams[5], date: '2026-01-25T19:30:00', round: 1, status: 'upcoming', stadium: teams[4].stadium, category: 'EKSTRAKLASA' },
+  { id: 'm2', homeTeam: teams[2], awayTeam: teams[3], homeScore: 2, awayScore: 1, date: '2026-01-25T17:00:00', round: 1, status: 'finished', stadium: teams[2].stadium, category: 'EKSTRAKLASA' },
   { id: 'm4', homeTeam: teams[6], awayTeam: teams[7], date: '2026-01-26T19:30:00', round: 1, status: 'upcoming', stadium: teams[6].stadium, category: 'EKSTRAKLASA' },
   { id: 'm5', homeTeam: teams[8], awayTeam: teams[9], date: '2026-01-26T15:00:00', round: 1, status: 'upcoming', stadium: teams[8].stadium, category: 'EKSTRAKLASA' },
   { id: 'm6', homeTeam: teams[10], awayTeam: teams[3], date: '2026-01-26T17:30:00', round: 1, status: 'upcoming', stadium: teams[10].stadium, category: 'EKSTRAKLASA' },
@@ -485,6 +503,9 @@ export const standings: Standing[] = [
   { position: 11, team: teams[8], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
   { position: 12, team: teams[2], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
   { position: 13, team: teams[7], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
+  { position: 14, team: teams[13], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
+  { position: 15, team: teams[14], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
+  { position: 16, team: teams[15], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
 ];
 
 export const topScorers: Player[] = [];

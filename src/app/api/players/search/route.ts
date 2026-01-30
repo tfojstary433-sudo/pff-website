@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAllUserClubs, getAllPlayerStats } from '@/lib/firebase';
 import { teams, clubToFirebaseKey } from '@/lib/data';
 import { API_ENDPOINTS } from '@/lib/constants';
+import { fetchWithTimeout } from '@/lib/utils';
 
 // Cache for players
 let playersCache: any[] | null = null;
@@ -19,8 +20,9 @@ async function getRobloxUsername(userId: string): Promise<string | null> {
   }
 
   try {
-    const response = await fetch(`https://users.roblox.com/v1/users/${userId}`, {
-      next: { revalidate: 3600 }
+    const response = await fetchWithTimeout(`https://users.roblox.com/v1/users/${userId}`, {
+      next: { revalidate: 3600 },
+      timeout: 3000
     });
 
     if (!response.ok) {
@@ -73,26 +75,27 @@ async function fetchAllPlayers(): Promise<any[]> {
 
     // 1. Fetch from external stats API (has better username mapping)
     try {
-      const statsResponse = await fetch(API_ENDPOINTS.STATS);
+      const statsResponse = await fetchWithTimeout(API_ENDPOINTS.STATS, { timeout: 3000 });
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
-        if (statsData.players && Array.isArray(statsData.players)) {
-          statsData.players.forEach((p: any) => {
+        const playersData = Array.isArray(statsData) ? statsData : (statsData.players || []);
+        if (Array.isArray(playersData)) {
+          playersData.forEach((p: any) => {
             const username = p.username || p.name;
             if (username) {
-              const team = teams.find(t => t.name === p.team || t.id === p.team);
+              const team = teams.find(t => t.name === p.team || t.id === p.team || t.id === p.teamId);
               playerMap.set(username.toLowerCase(), {
-                userId: p.userId || 'unknown',
+                userId: p.userId || p.robloxId || 'unknown',
                 username,
-                clubId: team?.id || p.team || '---',
-                clubName: team?.name || p.team || '---',
+                clubId: team?.id || p.team || p.teamId || '---',
+                clubName: team?.name || p.team || p.teamId || '---',
                 position: p.position || '---',
                 avatarUrl: null,
                 verified: true,
                 stats: {
                   goals: p.goals || 0,
                   assists: p.assists || 0,
-                  matches: p.matches || 0
+                  matches: p.matches || p.matchesPlayed || 0
                 }
               });
             }
@@ -180,6 +183,29 @@ async function fetchAllPlayers(): Promise<any[]> {
       }
     }
 
+    // 3. Fetch from players-history.json to get country and additional info
+    try {
+      const historyResponse = await fetchWithTimeout(API_ENDPOINTS.PLAYERS_HISTORY, { timeout: 3000 });
+      if (historyResponse.ok) {
+        const historyData = await historyResponse.json();
+        if (historyData.players) {
+          Object.entries(historyData.players).forEach(([pId, p]: [string, any]) => {
+            const username = p.name;
+            if (username) {
+              const lowerName = username.toLowerCase();
+              const player = playerMap.get(lowerName) || playerMap.get(pId);
+              
+              if (player) {
+                if (p.country) player.country = p.country;
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.error('History API failed in search:', e);
+    }
+
     allPlayers.push(...Array.from(playerMap.values()));
 
     // 3. Resolve usernames for numeric IDs that are still numeric usernames (batch resolution)
@@ -192,11 +218,12 @@ async function fetchAllPlayers(): Promise<any[]> {
       for (let i = 0; i < userIds.length; i += 100) {
         const batch = userIds.slice(i, i + 100);
         try {
-          const response = await fetch('https://users.roblox.com/v1/users', {
+          const response = await fetchWithTimeout('https://users.roblox.com/v1/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userIds: batch, excludeBannedUsers: false }),
-            next: { revalidate: 3600 }
+            next: { revalidate: 3600 },
+            timeout: 5000
           });
           
           if (response.ok) {

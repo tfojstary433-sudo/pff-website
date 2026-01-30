@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllUserClubs, getAllPlayerStats } from '@/lib/firebase';
 import { clubToFirebaseKey } from '@/lib/data';
+import { fetchWithTimeout } from '@/lib/utils';
 
 // Cache for Roblox usernames
 const usernameCache = new Map<string, { username: string; timestamp: number }>();
@@ -13,8 +14,9 @@ async function getRobloxUsername(userId: string): Promise<string | null> {
   }
 
   try {
-    const response = await fetch(`https://users.roblox.com/v1/users/${userId}`, {
-      next: { revalidate: 3600 }
+    const response = await fetchWithTimeout(`https://users.roblox.com/v1/users/${userId}`, {
+      next: { revalidate: 3600 },
+      timeout: 3000
     });
 
     if (!response.ok) {
@@ -34,7 +36,7 @@ async function getRobloxUsername(userId: string): Promise<string | null> {
 
 async function getRobloxAvatar(username: string): Promise<string | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/roblox/avatar?username=${encodeURIComponent(username)}`);
+    const response = await fetchWithTimeout(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/roblox/avatar?username=${encodeURIComponent(username)}`, { timeout: 3000 });
 
     if (!response.ok) {
       return null;
@@ -125,7 +127,7 @@ export async function GET(
          clubId,
          value: stats?.value || 0,
          previousClubs: [],
-         lastMatchNumber: stats?.number || Math.floor(Math.random() * 99) + 1,
+         lastMatchNumber: stats?.number || null,
          position: stats?.position || 'Zawodnik',
          verified: true, // Set to true since we fetched real usernames
          stats: {

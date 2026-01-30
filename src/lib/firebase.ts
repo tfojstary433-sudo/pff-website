@@ -144,3 +144,20 @@ export async function getLiveMatch(): Promise<any> {
     return null;
   }
 }
+
+export async function getMatchHistory(): Promise<any[]> {
+  try {
+    const response = await fetch(`${FIREBASE_BASE_URL}/match_history.json`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!data) return [];
+    
+    // Convert object to array and sort by timestamp
+    return Object.values(data).sort((a: any, b: any) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  } catch (error) {
+    console.error('Error fetching match history from Firebase:', error);
+    return [];
+  }
+}

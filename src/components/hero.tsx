@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { matches, Match, standings as defaultStandings } from '@/lib/data';
+import { matches, Match, teams, standings as defaultStandings } from '@/lib/data';
 import { ClubLogosBar } from './club-logos-bar';
-import { CompactLeagueTable, CompactTopScorers } from './compact-widgets';
+import { CompactLeagueTable } from './compact-widgets';
 import { API_ENDPOINTS } from '@/lib/constants';
 
 function CountdownTimer({ targetDate }: { targetDate: string }) {
@@ -44,26 +44,26 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
   const TimeBlock = ({ value, label }: { value: number; label: string }) => (
     <div className="flex flex-col items-center">
       <div className="relative">
-        <div className="bg-[#0a0a0a]/80 backdrop-blur-md rounded-xl border border-white/10 px-4 py-3 md:px-6 md:py-4 min-w-[60px] md:min-w-[90px] shadow-[0_0_30px_rgba(0,204,255,0.1)]">
-          <span className="text-3xl md:text-5xl font-black text-white tracking-tighter block text-center tabular-nums">
+        <div className="bg-[#0a0a0a]/80 backdrop-blur-md rounded-lg md:rounded-xl border border-white/10 px-2 py-2 md:px-6 md:py-4 min-w-[45px] md:min-w-[90px] shadow-[0_0_30px_rgba(0,204,255,0.1)]">
+          <span className="text-xl md:text-5xl font-black text-white tracking-tighter block text-center tabular-nums">
             {String(value).padStart(2, '0')}
           </span>
         </div>
         {/* Glow effect */}
-        <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-xl blur-md -z-10" />
+        <div className="absolute -inset-1 bg-gradient-to-b from-[#00ccff]/20 to-transparent rounded-lg md:rounded-xl blur-md -z-10" />
       </div>
-      <span className="text-[10px] md:text-xs text-gray-500 font-black mt-2 uppercase tracking-[0.2em]">{label}</span>
+      <span className="text-[8px] md:text-xs text-gray-500 font-black mt-1 md:mt-2 uppercase tracking-[0.2em]">{label}</span>
     </div>
   );
 
   return (
-    <div className="flex items-center justify-center gap-2 md:gap-4">
+    <div className="flex items-center justify-center gap-1 md:gap-4">
       <TimeBlock value={timeLeft.days} label="Dni" />
-      <span className="text-2xl md:text-4xl font-black text-[#00ccff]/50 mt-[-20px]">:</span>
+      <span className="text-xl md:text-4xl font-black text-[#00ccff]/50 mt-[-15px] md:mt-[-20px]">:</span>
       <TimeBlock value={timeLeft.hours} label="Godz" />
-      <span className="text-2xl md:text-4xl font-black text-[#00ccff]/50 mt-[-20px]">:</span>
+      <span className="text-xl md:text-4xl font-black text-[#00ccff]/50 mt-[-15px] md:mt-[-20px]">:</span>
       <TimeBlock value={timeLeft.minutes} label="Min" />
-      <span className="text-2xl md:text-4xl font-black text-[#00ccff]/50 mt-[-20px]">:</span>
+      <span className="text-xl md:text-4xl font-black text-[#00ccff]/50 mt-[-15px] md:mt-[-20px]">:</span>
       <TimeBlock value={timeLeft.seconds} label="Sek" />
     </div>
   );
@@ -82,11 +82,25 @@ interface ApiMatch {
   isActive: boolean;
 }
 
+const getTeamFromName = (teamName: string) => {
+  const foundTeam = teams.find(t => t.name === teamName || t.shortName === teamName);
+  
+  if (foundTeam) return foundTeam;
+
+  return {
+    id: 'UNK',
+    name: teamName,
+    shortName: teamName.substring(0, 3).toUpperCase(),
+    logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+    color: '#3b82f6'
+  };
+};
+
 export function Hero({ 
   setActiveTab, 
   setIsMinimized 
 }: { 
-  setActiveTab: (tab: 'terminarz' | 'tabela' | 'live' | 'statystyki') => void;
+  setActiveTab: (tab: 'terminarz' | 'tabela' | 'live') => void;
   setIsMinimized: (value: boolean) => void;
 }) {
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
@@ -110,34 +124,6 @@ export function Hero({
         if (fixturesResponse.ok) {
           const fixturesData = await fixturesResponse.json();
           const fixtures = fixturesData.fixtures || [];
-
-          // Helper function to get team object from name
-          const getTeamFromName = (teamName: string) => {
-            const teamMapping: Record<string, any> = {
-              'Zagłębie Lubin': { id: '4', name: 'Zagłębie Lubin', shortName: 'ZAG', logo: 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png', color: '#f97316' },
-              'Legia Warszawa': { id: '2', name: 'Legia Warszawa', shortName: 'LEG', logo: 'https://ext.same-assets.com/1250577607/695801781.png', color: '#dc2626' },
-              'Arka Gdynia': { id: '1', name: 'Arka Gdynia', shortName: 'ARK', logo: 'https://ext.same-assets.com/1250577607/451783410.png', color: '#FFD700' },
-              'Lech Poznań': { id: '3', name: 'Lech Poznań', shortName: 'LEC', logo: 'https://ext.same-assets.com/1250577607/3317158738.png', color: '#1e40af' },
-              'Lechia Gdańsk': { id: '5', name: 'Lechia Gdańsk', shortName: 'LGD', logo: 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png', color: '#3b82f6' },
-              'Zawisza Bydgoszcz': { id: '12', name: 'Zawisza Bydgoszcz', shortName: 'ZAW', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/55/Herb_Zawiszy_Bydgoszcz.png', color: '#f97316' },
-              'Wisła Kraków': { id: '13', name: 'Wisła Kraków', shortName: 'WIS', logo: 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg', color: '#dc2626' },
-              'Motor Lublin': { id: '9', name: 'Motor Lublin', shortName: 'MOT', logo: 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png', color: '#facc15' },
-              'Pogoń Szczecin': { id: '10', name: 'Pogoń Szczecin', shortName: 'POG', logo: 'https://ext.same-assets.com/1250577607/3079565559.png', color: '#1e3a8a' },
-              'Olimpia Elbląg': { id: '8', name: 'Olimpia Elbląg', shortName: 'OLI', logo: 'https://i.ibb.co/RGsNqf6G/olimpia-elblag.png', color: '#00ccff' },
-              'Chojniczanka Chojnice': { id: '11', name: 'Chojniczanka Chojnice', shortName: 'CHO', logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png', color: '#3b82f6' },
-              'Grom Nowy Staw': { id: '6', name: 'Grom Nowy Staw', shortName: 'GRO', logo: 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png', color: '#15803d' },
-              'Sokół Olsztyn': { id: '14', name: 'Sokół Olsztyn', shortName: 'SOK', logo: 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png', color: '#00ccff' },
-              'Unia Skierniewice': { id: '7', name: 'Unia Skierniewice', shortName: 'UNI', logo: 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png', color: '#facc15' }
-            };
-
-            return teamMapping[teamName] || {
-              id: 'UNK',
-              name: teamName,
-              shortName: teamName.substring(0, 3).toUpperCase(),
-              logo: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
-              color: '#3b82f6'
-            };
-          };
 
           // Map API fixtures to match format
           const mappedFixtures = fixtures
@@ -188,25 +174,35 @@ export function Hero({
     return () => clearInterval(interval);
   }, []);
 
-  if (loading || (upcomingMatches.length === 0 && !liveMatch)) return null;
+  if (loading) return <div className="min-h-[600px] md:min-h-[850px] bg-black/20" />;
 
   const isMatchLive = liveMatch !== null;
-  const currentMatch = upcomingMatches[currentIndex];
-
-  const getTeamData = (teamName: string) => {
-    return matches.find(m => 
-      m.homeTeam.name === teamName || m.homeTeam.shortName === teamName ||
-      m.awayTeam.name === teamName || m.awayTeam.shortName === teamName
+  
+  if (upcomingMatches.length === 0 && !isMatchLive) {
+    return (
+      <div className="relative w-full py-16 md:py-24 overflow-hidden min-h-[400px] flex items-center justify-center bg-gradient-to-b from-black to-[#0a1628]">
+        <div className="container mx-auto px-4 text-center z-10">
+          <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter mb-4">
+            Witamy w <span className="text-[#00ccff]">PFF</span>
+          </h1>
+          <p className="text-gray-400 text-lg uppercase tracking-widest font-bold">
+            Brak zaplanowanych meczów w najbliższym czasie
+          </p>
+        </div>
+        <div className="absolute inset-0 bg-[url('https://i.ibb.co/TB027G07/czarnepff-1.png')] bg-center bg-no-repeat opacity-5 scale-150 pointer-events-none" />
+      </div>
     );
-  };
+  }
+
+  const currentMatch = upcomingMatches[currentIndex];
 
   const standings = defaultStandings;
   const getTeamPosition = (teamId: string) => {
     return standings.find(s => s.team?.id === teamId)?.position || '-';
   };
 
-  const liveHomeTeam = liveMatch ? (getTeamData(liveMatch.teamA)?.homeTeam.name === liveMatch.teamA ? getTeamData(liveMatch.teamA)?.homeTeam : getTeamData(liveMatch.teamA)?.awayTeam) : null;
-  const liveAwayTeam = liveMatch ? (getTeamData(liveMatch.teamB)?.homeTeam.name === liveMatch.teamB ? getTeamData(liveMatch.teamB)?.homeTeam : getTeamData(liveMatch.teamB)?.awayTeam) : null;
+  const liveHomeTeam = liveMatch ? getTeamFromName(liveMatch.teamA) : null;
+  const liveAwayTeam = liveMatch ? getTeamFromName(liveMatch.teamB) : null;
 
   const displayData = isMatchLive ? {
     homeTeam: liveHomeTeam || { id: '', name: liveMatch!.teamA, logo: '', color: '#ffffff' },
@@ -244,7 +240,7 @@ export function Hero({
   };
 
   return (
-    <div className="relative w-full py-16 md:py-24 overflow-hidden min-h-[850px] flex items-center justify-center">
+    <div className="relative w-full py-8 md:py-24 overflow-hidden min-h-[600px] md:min-h-[850px] flex items-center justify-center">
       {/* Background decorations */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 -left-32 w-64 h-64 bg-[#00ccff]/10 rounded-full blur-[100px] animate-pulse" />
@@ -260,10 +256,10 @@ export function Hero({
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="flex flex-col 2xl:flex-row items-center 2xl:items-center justify-center gap-8 2xl:gap-12">
+        <div className="flex flex-col 2xl:grid 2xl:grid-cols-[300px_1fr_300px] items-center gap-8 2xl:gap-12">
           
           {/* Left Sidebar - Hidden on mobile/tablet */}
-          <div className="hidden 2xl:block w-72 shrink-0 space-y-6 animate-in fade-in slide-in-from-left duration-1000">
+          <div className="hidden 2xl:block w-72 space-y-6 animate-in fade-in slide-in-from-left duration-1000">
             <CompactLeagueTable setActiveTab={setActiveTab} setIsMinimized={setIsMinimized} />
             <div className="p-6 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-sm">
               <h4 className="text-[10px] font-black text-[#00ccff] uppercase tracking-[0.3em] mb-4">Social Media</h4>
@@ -290,14 +286,14 @@ export function Hero({
               <div className="absolute -inset-10 bg-blue-600/5 blur-[100px] rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
               
               {/* Main Frame */}
-              <div className="bg-[#0a0a0a]/80 backdrop-blur-2xl px-12 md:px-20 py-10 rounded-[2.5rem] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col items-center w-full">
+              <div className="bg-[#0a0a0a]/80 backdrop-blur-2xl px-6 md:px-20 py-6 md:py-10 rounded-3xl md:rounded-[2.5rem] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col items-center w-full">
                 <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
                 
                 {/* 7U7 Side Label (Left) */}
-                <div className="absolute left-8 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-2">
-                  <div className="w-px h-12 bg-gradient-to-b from-transparent via-[#00ccff]/40 to-transparent" />
-                  <span className="text-xl font-black text-white italic tracking-tighter transition-transform group-hover:scale-110">7U7</span>
-                  <div className="w-px h-12 bg-gradient-to-t from-transparent via-[#00ccff]/40 to-transparent" />
+                <div className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 hidden sm:flex flex-col items-center gap-2">
+                  <div className="w-px h-8 md:h-12 bg-gradient-to-b from-transparent via-[#00ccff]/40 to-transparent" />
+                  <span className="text-sm md:text-xl font-black text-white italic tracking-tighter transition-transform group-hover:scale-110">7U7</span>
+                  <div className="w-px h-8 md:h-12 bg-gradient-to-t from-transparent via-[#00ccff]/40 to-transparent" />
                 </div>
 
                 {/* Content Container */}
@@ -309,22 +305,22 @@ export function Hero({
                       alt="7U7 Ekstraklasa"
                       width={600}
                       height={150}
-                      className="h-28 md:h-36 w-auto object-contain relative z-10 drop-shadow-[0_0_30px_rgba(0,204,255,0.3)] group-hover:scale-105 transition-transform duration-500"
+                      className="h-20 md:h-36 w-auto object-contain relative z-10 drop-shadow-[0_0_30px_rgba(0,204,255,0.3)] group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
                   
-                  <div className="flex items-center gap-4 mt-4 w-full px-4">
+                  <div className="flex items-center gap-2 md:gap-4 mt-2 md:mt-4 w-full px-4">
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.5em] whitespace-nowrap">Seven UltimateSeven • PFF</span>
+                    <span className="text-[7px] md:text-[9px] font-bold text-gray-500 uppercase tracking-[0.3em] md:tracking-[0.5em] whitespace-nowrap">Seven UltimateSeven • PFF</span>
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                   </div>
                 </div>
 
                 {/* PFF Side Label (Right) */}
-                <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-2">
-                  <div className="w-px h-12 bg-gradient-to-b from-transparent via-[#00ccff]/40 to-transparent" />
-                  <span className="text-sm font-black text-[#00ccff] uppercase tracking-widest italic drop-shadow-[0_0_10px_rgba(0,204,255,0.4)]">PFF</span>
-                  <div className="w-px h-12 bg-gradient-to-t from-transparent via-[#00ccff]/40 to-transparent" />
+                <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 hidden sm:flex flex-col items-center gap-2">
+                  <div className="w-px h-8 md:h-12 bg-gradient-to-b from-transparent via-[#00ccff]/40 to-transparent" />
+                  <span className="text-xs md:text-sm font-black text-[#00ccff] uppercase tracking-widest italic drop-shadow-[0_0_10px_rgba(0,204,255,0.4)]">PFF</span>
+                  <div className="w-px h-8 md:h-12 bg-gradient-to-t from-transparent via-[#00ccff]/40 to-transparent" />
                 </div>
 
                 {/* Glass corner accents */}
@@ -334,12 +330,12 @@ export function Hero({
             </div>
 
             {/* Round Title */}
-            <div className="mb-6 flex flex-col items-center">
+            <div className="mb-4 md:mb-6 flex flex-col items-center">
               <div className="relative">
-                <h3 className="text-3xl md:text-5xl font-black text-[#00ccff] uppercase tracking-[0.15em] drop-shadow-[0_0_20px_rgba(0,204,255,0.4)]">
+                <h3 className="text-xl md:text-5xl font-black text-[#00ccff] uppercase tracking-[0.1em] md:tracking-[0.15em] drop-shadow-[0_0_20px_rgba(0,204,255,0.4)]">
                   {isMatchLive ? (liveMatch?.period || 'MECZ TRWA') : `${currentMatch.round}. KOLEJKA`}
                 </h3>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-[#00ccff] to-transparent" />
+                <div className="absolute -bottom-1 md:-bottom-2 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-[#00ccff] to-transparent" />
               </div>
             </div>
 
@@ -371,12 +367,12 @@ export function Hero({
               </div>
 
               {/* Main match card */}
-              <div className={`relative overflow-hidden rounded-3xl transition-all duration-500 ${
+              <div className={`relative overflow-hidden rounded-[2rem] md:rounded-3xl transition-all duration-500 ${
                 isMatchLive
                   ? 'gradient-border-animated shadow-[0_0_60px_rgba(220,38,38,0.3)]'
                   : 'gradient-border shadow-[0_0_60px_rgba(0,204,255,0.15)]'
               }`}>
-                <div className="bg-[#0a0a0a]/95 backdrop-blur-xl p-8 md:p-12">
+                <div className="bg-[#0a0a0a]/95 backdrop-blur-xl p-4 md:p-12">
                   {/* Team color gradients */}
                   <div
                     className="absolute inset-0 opacity-20 pointer-events-none transition-opacity duration-500"
@@ -392,14 +388,14 @@ export function Hero({
                   <div className="absolute inset-0 shine-effect pointer-events-none" />
 
                   <div className="relative z-10 flex flex-col items-center w-full">
-                    <div className="flex items-center justify-between w-full gap-4 md:gap-8 px-4">
+                    <div className="flex items-center justify-between w-full gap-2 md:gap-8 px-2 md:px-4">
                       {/* Home team name */}
                       <h2 className="hidden md:block text-xl lg:text-2xl xl:text-3xl font-black text-white uppercase tracking-tight text-right w-[30%] transition-all hover:text-[#00ccff]">
                         {displayData.homeTeam.name}
                       </h2>
 
                       {/* Home team logo */}
-                      <div className="relative group flex-shrink-0 w-24 md:w-32 lg:w-40 flex justify-center">
+                      <div className="relative group flex-shrink-0 w-20 md:w-32 lg:w-40 flex justify-center">
                         <div
                           className="absolute inset-0 blur-3xl opacity-40 rounded-full scale-150 transition-all duration-500 group-hover:opacity-60 group-hover:scale-175"
                           style={{ backgroundColor: displayData.homeTeam.color }}
@@ -409,41 +405,41 @@ export function Hero({
                           alt={displayData.homeTeam.name}
                           width={140}
                           height={140}
-                          className="relative z-10 object-contain drop-shadow-2xl h-20 w-20 md:h-28 md:w-28 lg:h-32 lg:w-32 transition-transform duration-500 group-hover:scale-110"
+                          className="relative z-10 object-contain drop-shadow-2xl h-16 w-16 md:h-28 md:w-28 lg:h-32 lg:w-32 transition-transform duration-500 group-hover:scale-110"
                         />
                       </div>
 
                       {/* Score/Time display */}
-                      <div className="flex flex-col items-center justify-center min-w-[140px] md:min-w-[220px] mx-2">
-                        <div className={`relative overflow-hidden rounded-2xl border px-8 md:px-12 py-4 md:py-6 flex flex-col items-center justify-center w-full transition-all duration-500 ${
+                      <div className="flex flex-col items-center justify-center min-w-[100px] md:min-w-[220px] mx-1 md:mx-2">
+                        <div className={`relative overflow-hidden rounded-xl md:rounded-2xl border px-4 md:px-12 py-3 md:py-6 flex flex-col items-center justify-center w-full transition-all duration-500 ${
                           isMatchLive
                             ? 'bg-gradient-to-b from-red-950/50 to-black/90 border-red-500/30'
                             : 'bg-gradient-to-b from-[#0a1628] to-black/90 border-[#00ccff]/20'
                         }`}>
                           {/* Inner glow */}
-                          <div className={`absolute inset-0 ${isMatchLive ? 'bg-red-500/5' : 'bg-[#00ccff]/5'} rounded-2xl`} />
+                          <div className={`absolute inset-0 ${isMatchLive ? 'bg-red-500/5' : 'bg-[#00ccff]/5'} rounded-xl md:rounded-2xl`} />
                           
-                          <span className={`text-4xl md:text-5xl lg:text-6xl font-black tracking-wider relative z-10 whitespace-nowrap ${
+                          <span className={`text-2xl md:text-5xl lg:text-6xl font-black tracking-wider relative z-10 whitespace-nowrap ${
                             isMatchLive ? 'text-white' : 'text-white'
                           }`} style={{ fontVariantNumeric: 'tabular-nums' }}>
                             {isMatchLive ? `${displayData.scoreA}:${displayData.scoreB}` : new Date(displayData.date).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isMatchLive && (
-                            <span className="text-red-500 font-black text-xs md:text-sm tracking-[0.3em] uppercase mt-2 animate-pulse">LIVE</span>
+                            <span className="text-red-500 font-black text-[8px] md:text-sm tracking-[0.3em] uppercase mt-1 md:mt-2 animate-pulse">LIVE</span>
                           )}
                         </div>
                         
                         {!isMatchLive && (
-                          <div className="flex flex-col items-center gap-2 mt-4">
-                            <div className="flex items-center gap-4 font-black text-base md:text-lg">
-                              <span className="text-[#00ccff]/70 bg-[#00ccff]/10 px-3 py-1 rounded-full whitespace-nowrap">#{homePos}</span>
-                              <span className="text-gray-600">vs</span>
-                              <span className="text-[#00ccff]/70 bg-[#00ccff]/10 px-3 py-1 rounded-full whitespace-nowrap">#{awayPos}</span>
+                          <div className="flex flex-col items-center gap-1 md:gap-2 mt-2 md:mt-4">
+                            <div className="flex items-center gap-2 md:gap-4 font-black text-xs md:text-lg">
+                              <span className="text-[#00ccff]/70 bg-[#00ccff]/10 px-2 md:px-3 py-0.5 md:py-1 rounded-full whitespace-nowrap">#{homePos}</span>
+                              <span className="text-gray-600 text-[10px] md:text-base">vs</span>
+                              <span className="text-[#00ccff]/70 bg-[#00ccff]/10 px-2 md:px-3 py-0.5 md:py-1 rounded-full whitespace-nowrap">#{awayPos}</span>
                             </div>
                             {currentMatch.stadium && (
-                              <div className="flex flex-col items-center gap-1 mt-2">
-                                <span className="text-[10px] md:text-xs font-black text-white/40 uppercase tracking-[0.2em]">{currentMatch.stadium}</span>
-                                <span className="text-[9px] font-black text-[#00ccff] uppercase tracking-[0.3em]">{currentMatch.category}</span>
+                              <div className="flex flex-col items-center gap-0.5 md:gap-1 mt-1 md:mt-2">
+                                <span className="text-[8px] md:text-xs font-black text-white/40 uppercase tracking-[0.2em]">{currentMatch.stadium}</span>
+                                <span className="text-[7px] md:text-[9px] font-black text-[#00ccff] uppercase tracking-[0.3em]">{currentMatch.category}</span>
                               </div>
                             )}
                           </div>
@@ -451,7 +447,7 @@ export function Hero({
                       </div>
 
                       {/* Away team logo */}
-                      <div className="relative group flex-shrink-0 w-24 md:w-32 lg:w-40 flex justify-center">
+                      <div className="relative group flex-shrink-0 w-20 md:w-32 lg:w-40 flex justify-center">
                         <div
                           className="absolute inset-0 blur-3xl opacity-40 rounded-full scale-150 transition-all duration-500 group-hover:opacity-60 group-hover:scale-175"
                           style={{ backgroundColor: displayData.awayTeam.color }}
@@ -461,7 +457,7 @@ export function Hero({
                           alt={displayData.awayTeam.name}
                           width={140}
                           height={140}
-                          className="relative z-10 object-contain drop-shadow-2xl h-20 w-20 md:h-28 md:w-28 lg:h-32 lg:w-32 transition-transform duration-500 group-hover:scale-110"
+                          className="relative z-10 object-contain drop-shadow-2xl h-16 w-16 md:h-28 md:w-28 lg:h-32 lg:w-32 transition-transform duration-500 group-hover:scale-110"
                         />
                       </div>
 
@@ -472,39 +468,39 @@ export function Hero({
                     </div>
 
                     {/* Mobile team names */}
-                    <div className="flex md:hidden justify-between w-full px-4 mt-4">
-                      <span className="text-sm font-black text-white uppercase tracking-tight text-center flex-1">{displayData.homeTeam.name}</span>
-                      <div className="w-16" />
-                      <span className="text-sm font-black text-white uppercase tracking-tight text-center flex-1">{displayData.awayTeam.name}</span>
+                    <div className="flex md:hidden justify-between w-full px-2 mt-3 gap-2">
+                      <span className="text-[10px] font-black text-white uppercase tracking-tight text-center flex-1 truncate">{displayData.homeTeam.name}</span>
+                      <div className="w-8" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-tight text-center flex-1 truncate">{displayData.awayTeam.name}</span>
                     </div>
 
                     {/* Match navigation - arrows on sides */}
                     {!isMatchLive && upcomingMatches.length > 1 && (
-                      <div className="flex items-center justify-center gap-6 w-full mt-6">
+                      <div className="flex items-center justify-center gap-3 md:gap-6 w-full mt-4 md:mt-6">
                         <button
                           onClick={prevMatch}
                           disabled={currentIndex === 0}
-                          className="group px-5 py-3 rounded-xl font-black bg-white/5 text-gray-400 hover:bg-[#00ccff]/10 hover:text-[#00ccff] disabled:opacity-20 disabled:hover:bg-white/5 disabled:hover:text-gray-400 border border-white/10 hover:border-[#00ccff]/30 transition-all flex items-center gap-2"
+                          className="group px-3 md:px-5 py-2 md:py-3 rounded-lg md:rounded-xl font-black bg-white/5 text-gray-400 hover:bg-[#00ccff]/10 hover:text-[#00ccff] disabled:opacity-20 disabled:hover:bg-white/5 disabled:hover:text-gray-400 border border-white/10 hover:border-[#00ccff]/30 transition-all flex items-center gap-2"
                         >
-                          <svg className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-4 h-4 md:w-5 md:h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                           </svg>
                           <span className="hidden md:inline text-sm uppercase tracking-wider">Poprzedni</span>
                         </button>
                         
-                        <div className="px-6 py-3 bg-white/5 backdrop-blur-md rounded-xl border border-white/10">
-                          <span className="text-sm text-gray-400 font-black uppercase tracking-wider">
-                            Mecz {currentIndex + 1} / {upcomingMatches.length}
+                        <div className="px-3 md:px-6 py-2 md:py-3 bg-white/5 backdrop-blur-md rounded-lg md:rounded-xl border border-white/10">
+                          <span className="text-[10px] md:text-sm text-gray-400 font-black uppercase tracking-wider">
+                            {currentIndex + 1} / {upcomingMatches.length}
                           </span>
                         </div>
 
                         <button
                           onClick={nextMatch}
                           disabled={currentIndex === upcomingMatches.length - 1}
-                          className="group px-5 py-3 rounded-xl font-black bg-white/5 text-gray-400 hover:bg-[#00ccff]/10 hover:text-[#00ccff] disabled:opacity-20 disabled:hover:bg-white/5 disabled:hover:text-gray-400 border border-white/10 hover:border-[#00ccff]/30 transition-all flex items-center gap-2"
+                          className="group px-3 md:px-5 py-2 md:py-3 rounded-lg md:rounded-xl font-black bg-white/5 text-gray-400 hover:bg-[#00ccff]/10 hover:text-[#00ccff] disabled:opacity-20 disabled:hover:bg-white/5 disabled:hover:text-gray-400 border border-white/10 hover:border-[#00ccff]/30 transition-all flex items-center gap-2"
                         >
                           <span className="hidden md:inline text-sm uppercase tracking-wider">Następny</span>
-                          <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-4 h-4 md:w-5 md:h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </button>
@@ -515,20 +511,17 @@ export function Hero({
                     {isMatchLive && (
                       <Link
                         href={`/mecz/${liveMatch?.uuid}`}
-                        className="group mt-8 relative overflow-hidden px-10 py-4 rounded-xl font-black uppercase tracking-wider transition-all ripple"
+                        className="group mt-4 md:mt-8 relative overflow-hidden px-6 md:px-10 py-3 md:py-4 rounded-lg md:rounded-xl font-black uppercase tracking-wider transition-all ripple"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="absolute inset-0 bg-white/5" />
-                        <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[10px] group-hover:bg-transparent transition-colors duration-300" />
-                        <span className="relative z-10 text-white flex items-center gap-3">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[7px] md:rounded-[10px] group-hover:bg-transparent transition-colors duration-300" />
+                        <span className="relative z-10 text-white flex items-center gap-2 md:gap-3 text-xs md:text-base">
+                          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                           Centrum Meczowe
-                          <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
                         </span>
                       </Link>
                     )}
@@ -538,20 +531,6 @@ export function Hero({
             </div>
           </div>
 
-          {/* Right Sidebar - Hidden on mobile/tablet */}
-          <div className="hidden 2xl:block w-72 shrink-0 space-y-6 animate-in fade-in slide-in-from-right duration-1000">
-            <CompactTopScorers setActiveTab={setActiveTab} setIsMinimized={setIsMinimized} />
-            <div className="relative group">
-              <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-2xl" />
-              <div className="relative p-6 rounded-2xl border border-white/5 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm">
-                <h4 className="text-[10px] font-black text-[#00ccff] uppercase tracking-[0.3em] mb-2">WSPARCIE</h4>
-                <p className="text-[10px] text-gray-400 font-bold leading-relaxed mb-4">Podoba Ci się projekt? Dołącz do naszej społeczności i wspieraj rozwój ligi!</p>
-                <Link href="https://discord.gg/R7y6ZnczP4" target="_blank" className="flex items-center justify-center gap-2 w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all">
-                  DOŁĄCZ TERAZ
-                </Link>
-              </div>
-            </div>
-          </div>
 
         </div>
 

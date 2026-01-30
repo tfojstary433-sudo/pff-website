@@ -40,6 +40,7 @@ export function TournamentLogos() {
                 alt={tournament.name}
                 fill
                 className="object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] group-hover:drop-shadow-[0_0_40px_rgba(255,255,255,0.4)] transition-all duration-500"
+                suppressHydrationWarning={true}
               />
             </div>
             

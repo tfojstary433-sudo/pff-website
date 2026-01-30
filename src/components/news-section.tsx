@@ -25,6 +25,7 @@ function NewsCard({ article, large = false, index = 0 }: { article: Article; lar
             alt={article.title}
             fill
             className="object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110"
+            suppressHydrationWarning={true}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a] opacity-50" />
           <div className="absolute bottom-4 left-4 px-3 py-1 bg-[#00ccff]/20 backdrop-blur-md rounded-full border border-[#00ccff]/30">
@@ -45,7 +46,7 @@ function NewsCard({ article, large = false, index = 0 }: { article: Article; lar
           )}
           <div className="mt-4 flex items-center gap-2 text-[#00ccff] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <span className="text-sm font-black uppercase tracking-wider">Czytaj więcej</span>
-            <svg className="w-4 h-4 transform group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 transform group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" suppressHydrationWarning={true}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </div>
@@ -75,7 +76,7 @@ function NewsCard({ article, large = false, index = 0 }: { article: Article; lar
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-[#00ccff]/0 group-hover:bg-[#00ccff]/10 transition-colors duration-300 flex items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 scale-50 group-hover:scale-100 transition-all duration-300">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" suppressHydrationWarning={true}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
           </div>
@@ -120,7 +121,7 @@ export function NewsSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main content */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-4">
             {/* Large articles grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
               {largeArticles.map((article, index) => (
@@ -134,11 +135,6 @@ export function NewsSection() {
                 <NewsCard key={article.id} article={article} index={index + 2} />
               ))}
             </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            {/* Empty sidebar for now */}
           </div>
         </div>
 

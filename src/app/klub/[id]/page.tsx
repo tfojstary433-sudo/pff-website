@@ -34,8 +34,39 @@ export default function KlubPage() {
   const team = teams.find(t => t.id === id);
   const [activeTab, setActiveTab] = useState<'o-klubie' | 'zespół' | 'statystyki'>('o-klubie');
   const [players, setPlayers] = useState<ClubPlayer[]>([]);
+  const [playerNumbers, setPlayerNumbers] = useState<Record<string, number>>({});
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch player numbers from matches API
+  useEffect(() => {
+    fetch('https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/matches')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const numbers: Record<string, number> = {};
+          // Process matches in chronological order (oldest to newest) to get the latest number
+          data.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).forEach(match => {
+            const processLineup = (lineup: any) => {
+              if (lineup?.starters) {
+                lineup.starters.forEach((p: any) => {
+                  if (p.id) numbers[p.id.toString()] = p.number;
+                });
+              }
+              if (lineup?.bench) {
+                lineup.bench.forEach((p: any) => {
+                  if (p.id) numbers[p.id.toString()] = p.number;
+                });
+              }
+            };
+            processLineup(match.lineupA);
+            processLineup(match.lineupB);
+          });
+          setPlayerNumbers(numbers);
+        }
+      })
+      .catch(err => console.error('Error fetching match numbers:', err));
+  }, []);
 
   // Fetch players when zespół tab is active
   useEffect(() => {
@@ -370,17 +401,17 @@ export default function KlubPage() {
                             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-600 group-hover:border-gray-500 transition-colors">
                               <RobloxAvatar username={player.username} className="w-full h-full object-cover" />
                             </div>
-                            {player.verified && (
+                            {(player.verified || playerNumbers[player.userId]) && (
                               <div
                                 className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 flex items-center justify-center"
                                 style={{ backgroundColor: teamColor }}
                               >
                                 <span className="text-white text-xs font-bold">
-                                  {player.lastMatchNumber || Math.floor(Math.random() * 99) + 1}
+                                  {playerNumbers[player.userId] || player.lastMatchNumber || '-'}
                                 </span>
                               </div>
                             )}
-                            {!player.verified && (
+                            {(!player.verified && !playerNumbers[player.userId]) && (
                               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 bg-gray-600 flex items-center justify-center">
                                 <span className="text-gray-300 text-xs font-bold">?</span>
                               </div>

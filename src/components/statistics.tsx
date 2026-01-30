@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { teams, mockPlayersData } from '@/lib/data';
 import { useMatchStats } from '@/lib/useMatchStats';
 import { RobloxAvatar } from './roblox-avatar';
-import { API_ENDPOINTS } from '@/lib/constants';
+import { API_ENDPOINTS, COUNTRY_MAPPING } from '@/lib/constants';
+import { mapPositionToPolish } from '@/lib/utils';
 
 const StatCard = ({ title, players, metric, label, color = "blue", isInTab = false }: { title: string, players: any[], metric: string, label: string, color?: "blue" | "green" | "yellow" | "red", isInTab?: boolean }) => {
   const topPlayer = players[0];
@@ -54,11 +55,26 @@ const StatCard = ({ title, players, metric, label, color = "blue", isInTab = fal
                 1
               </div>
               <span className="text-yellow-500/80 text-[10px] font-black uppercase tracking-widest">Lider</span>
+              {topPlayer.country && (
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <img 
+                    src={`https://flagcdn.com/w40/${topPlayer.country.toLowerCase()}.png`} 
+                    alt={topPlayer.country} 
+                    className="w-6 h-4 object-cover rounded-sm border border-white/10 shadow-lg"
+                  />
+                </div>
+              )}
             </div>
 
-            <h4 className={`text-white font-black uppercase mb-6 tracking-tighter leading-none group-hover:text-yellow-500 transition-colors ${isInTab ? 'text-xl truncate max-w-[150px]' : 'text-3xl'}`}>
+            <h4 className={`text-white font-black uppercase mb-2 tracking-tighter leading-none group-hover:text-yellow-500 transition-colors ${isInTab ? 'text-xl truncate max-w-[150px]' : 'text-3xl'}`}>
               {topPlayer.name}
             </h4>
+            
+            {topPlayer.position && topPlayer.position !== '---' && (
+              <p className="text-[#00ccff] text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+                {mapPositionToPolish(topPlayer.position)}
+              </p>
+            )}
 
             <div className="mt-auto flex items-end gap-3">
               <div className={`bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col items-center justify-center shadow-2xl group-hover:border-yellow-500/50 transition-colors ${isInTab ? 'px-4 py-2 min-w-[60px]' : 'px-6 py-3 min-w-[80px]'}`}>
@@ -131,13 +147,29 @@ const StatCard = ({ title, players, metric, label, color = "blue", isInTab = fal
                   {position}
                 </div>
                 <div className="flex flex-col">
-                  <span className={`font-bold text-sm uppercase tracking-tight transition-colors truncate max-w-[120px] ${
-                    position === 2 ? 'text-gray-200 group-hover/row:text-white' :
-                    position === 3 ? 'text-orange-200 group-hover/row:text-orange-100' :
-                    'text-white group-hover/row:text-[#00ccff]'
-                  }`}>
-                      {player.name}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-bold text-sm uppercase tracking-tight transition-colors truncate max-w-[120px] ${
+                      position === 2 ? 'text-gray-200 group-hover/row:text-white' :
+                      position === 3 ? 'text-orange-200 group-hover/row:text-orange-100' :
+                      'text-white group-hover/row:text-[#00ccff]'
+                    }`}>
+                        {player.name}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {player.country && (
+                        <img 
+                          src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} 
+                          alt={player.country} 
+                          className="w-4 h-3 object-cover rounded-sm border border-white/10"
+                        />
+                      )}
+                      {player.position && player.position !== '---' && (
+                        <span className="text-[9px] font-black text-white/30 uppercase tracking-tighter">
+                          {mapPositionToPolish(player.position)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -170,37 +202,12 @@ const StatCard = ({ title, players, metric, label, color = "blue", isInTab = fal
 export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
     const { topScorers, standings } = useMatchStats();
     const [mounted, setMounted] = useState(false);
-    const [apiPlayers, setApiPlayers] = useState<any[]>([]);
-    const [loadingStats, setLoadingStats] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searching, setSearching] = useState(false);
 
    useEffect(() => {
      setMounted(true);
-   }, []);
-
-   useEffect(() => {
-     const fetchStats = async () => {
-       try {
-         const response = await fetch(API_ENDPOINTS.STATS);
-         if (response.ok) {
-           const data = await response.json();
-           console.log('Stats data:', data);
-           if (data.players && Array.isArray(data.players)) {
-             setApiPlayers(data.players);
-           }
-         } else {
-           console.error('Failed to fetch stats');
-         }
-       } catch (error) {
-         console.error('Error fetching stats:', error);
-       } finally {
-         setLoadingStats(false);
-       }
-     };
-
-     fetchStats();
    }, []);
 
    // Search effect
@@ -229,7 +236,7 @@ export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
      return () => clearTimeout(timeoutId);
    }, [searchQuery]);
 
-   const activePlayers = apiPlayers.length > 0 ? apiPlayers : (topScorers.length > 0 ? topScorers : mockPlayersData);
+   const activePlayers = topScorers.length > 0 ? topScorers : mockPlayersData;
 
   const getTeamBySearch = (clubName: string, clubId: string) => {
     return teams.find(t => 
@@ -346,7 +353,22 @@ export function Statistics({ isInTab = false }: { isInTab?: boolean } = {}) {
                                  {player.position && player.position !== '---' && (
                                    <>
                                      <span className="text-white/10">•</span>
-                                     <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">{player.position}</p>
+                                     <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">{mapPositionToPolish(player.position)}</p>
+                                   </>
+                                 )}
+                                 {player.country && (
+                                   <>
+                                     <span className="text-white/10">•</span>
+                                     <div className="flex items-center gap-1.5">
+                                       <img 
+                                         src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} 
+                                         alt={player.country} 
+                                         className="w-3.5 h-2.5 object-cover rounded-sm"
+                                       />
+                                       <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">
+                                         {COUNTRY_MAPPING[player.country] || player.country}
+                                       </p>
+                                     </div>
                                    </>
                                  )}
                               </div>

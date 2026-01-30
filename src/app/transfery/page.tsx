@@ -1,125 +1,90 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { DateBar } from '@/components/date-bar';
 import { RobloxAvatar } from '@/components/roblox-avatar';
+import { API_ENDPOINTS } from '@/lib/constants';
+import { teams, Team } from '@/lib/data';
+import { mapPositionToPolish } from '@/lib/utils';
 
 interface Transfer {
-  id: number;
+  id: string;
   player: string;
   position: string;
   from: string;
   to: string;
   fromLogo: string;
   toLogo: string;
-  robloxUsername?: string;
-  amount: string;
+  robloxUsername: string;
   date: string;
-  type: 'transfer' | 'loan';
+  timestamp: number;
 }
-
-// Helper function for team logos
-function getTeamLogo(teamName: string): string {
-  const teamLogos: Record<string, string> = {
-    'Wisła Kraków': 'https://upload.wikimedia.org/wikipedia/en/1/15/Wis%C5%82a_Krak%C3%B3w_logo.svg',
-    'Legia Warszawa': 'https://ext.same-assets.com/1250577607/695801781.png',
-    'Lech Poznań': 'https://ext.same-assets.com/1250577607/3079565559.png',
-    'Arka Gdynia': 'https://ext.same-assets.com/1250577607/451783410.png',
-    'Cracovia': 'https://i.ibb.co/nqBHgwK2/obraz-2026-01-22-143911384.png',
-    'Jagiellonia Białystok': 'https://i.ibb.co/V0rcs98Q/obraz-2026-01-04-213027745-removebg-preview-4.png',
-    'Pogoń Szczecin': 'https://i.ibb.co/bgRJrvnj/Motor-Lublin-S-A-Oficjalny-Herb.png',
-    'Śląsk Wrocław': 'https://i.ibb.co/Vp3YY8FY/unia-logo-300x300.png',
-    'Zagłębie Lubin': 'https://i.ibb.co/7xBP97MW/dvyf-Zx2g-Ykwr8-Dur.png',
-    'Górnik Zabrze': 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png',
-  };
-  return teamLogos[teamName] || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
-}
-
-const sampleTransfers: Transfer[] = [
-  {
-    id: 1,
-    player: 'Pako7u7lol',
-    position: 'Napastnik',
-    from: 'Wisła Kraków',
-    to: 'Legia Warszawa',
-    fromLogo: getTeamLogo('Wisła Kraków'),
-    toLogo: getTeamLogo('Legia Warszawa'),
-    robloxUsername: 'Pako7u7lol',
-    amount: '2.5M',
-    date: '20.01.2026',
-    type: 'transfer'
-  },
-  {
-    id: 2,
-    player: 'MistrzGier',
-    position: 'Pomocnik',
-    from: 'Lech Poznań',
-    to: 'Arka Gdynia',
-    fromLogo: getTeamLogo('Lech Poznań'),
-    toLogo: getTeamLogo('Arka Gdynia'),
-    robloxUsername: 'MistrzGier',
-    amount: '800k',
-    date: '18.01.2026',
-    type: 'transfer'
-  },
-  {
-    id: 3,
-    player: 'SzybkiJakWiatr',
-    position: 'Obrońca',
-    from: 'Cracovia',
-    to: 'Jagiellonia Białystok',
-    fromLogo: getTeamLogo('Cracovia'),
-    toLogo: getTeamLogo('Jagiellonia Białystok'),
-    robloxUsername: 'SzybkiJakWiatr',
-    amount: '1.2M',
-    date: '15.01.2026',
-    type: 'transfer'
-  },
-  {
-    id: 4,
-    player: 'BramkarzPro',
-    position: 'Bramkarz',
-    from: 'Pogoń Szczecin',
-    to: 'Śląsk Wrocław',
-    fromLogo: getTeamLogo('Pogoń Szczecin'),
-    toLogo: getTeamLogo('Śląsk Wrocław'),
-    robloxUsername: 'BramkarzPro',
-    amount: 'Wypożyczenie',
-    date: '12.01.2026',
-    type: 'loan'
-  },
-  {
-    id: 5,
-    player: 'KapitanDrużyny',
-    position: 'Pomocnik',
-    from: 'Zagłębie Lubin',
-    to: 'Górnik Zabrze',
-    fromLogo: getTeamLogo('Zagłębie Lubin'),
-    toLogo: getTeamLogo('Górnik Zabrze'),
-    robloxUsername: 'KapitanDrużyny',
-    amount: '950k',
-    date: '10.01.2026',
-    type: 'transfer'
-  }
-];
 
 export default function TransferyPage() {
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'incoming' | 'outgoing' | 'loans'>('all');
 
-  const filteredTransfers = sampleTransfers.filter(transfer => {
-    switch (activeTab) {
-      case 'incoming':
-        return true; // All are incoming in this context
-      case 'outgoing':
-        return true; // All are outgoing in this context
-      case 'loans':
-        return transfer.type === 'loan';
-      default:
-        return true;
-    }
-  });
+  useEffect(() => {
+    const fetchTransfers = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.PLAYERS_HISTORY);
+        if (response.ok) {
+          const data = await response.json();
+          const allTransfers: Transfer[] = [];
+
+          if (data.players) {
+            Object.entries(data.players).forEach(([userId, player]: [string, any]) => {
+              if (player.matches && player.matches.length > 0) {
+                // Sort matches by date ascending
+                const sortedMatches = [...player.matches].sort((a: any, b: any) => 
+                  new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime()
+                );
+
+                let lastTeamName = '';
+                
+                sortedMatches.forEach((match: any) => {
+                  const currentTeamName = match.playerTeam;
+                  
+                  if (lastTeamName && currentTeamName !== lastTeamName) {
+                    const fromTeam = teams.find(t => t.name === lastTeamName || t.id === lastTeamName);
+                    const toTeam = teams.find(t => t.name === currentTeamName || t.id === currentTeamName);
+
+                    allTransfers.push({
+                      id: `${userId}-${match.playedAt}`,
+                      player: player.name || 'Nieznany',
+                      position: mapPositionToPolish(player.position || match.position || '---'),
+                      from: fromTeam?.name || lastTeamName,
+                      to: toTeam?.name || currentTeamName,
+                      fromLogo: fromTeam?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+                      toLogo: toTeam?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+                      robloxUsername: player.name,
+                      date: match.playedAt ? new Date(match.playedAt).toLocaleDateString('pl-PL') : '---',
+                      timestamp: new Date(match.playedAt).getTime()
+                    });
+                  }
+                  lastTeamName = currentTeamName;
+                });
+              }
+            });
+          }
+
+          // Sort all transfers by timestamp descending
+          setTransfers(allTransfers.sort((a, b) => b.timestamp - a.timestamp));
+        }
+      } catch (error) {
+        console.error('Error fetching transfers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransfers();
+  }, []);
+
+  const filteredTransfers = transfers; // Simplification for now as history doesn't specify loan/transfer type
 
   return (
     <>
@@ -215,67 +180,65 @@ export default function TransferyPage() {
 
             {/* Transfer list */}
             <div className="space-y-4">
-              {filteredTransfers.map((transfer) => (
-                <div key={transfer.id} className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-6 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      <div className="relative flex-shrink-0">
-                        {transfer.robloxUsername ? (
+              {loading ? (
+                <div className="flex justify-center py-20">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : filteredTransfers.length > 0 ? (
+                filteredTransfers.map((transfer) => (
+                  <div key={transfer.id} className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-6 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="relative flex-shrink-0">
                           <RobloxAvatar
                             username={transfer.robloxUsername}
                             className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-blue-500"
                           />
-                        ) : (
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                            {transfer.player.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-white font-bold text-base sm:text-lg truncate">{transfer.player}</h3>
+                          <p className="text-gray-400 text-sm">{transfer.position}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-center gap-4 sm:gap-12 flex-grow max-w-2xl">
+                        <div className="flex flex-col items-center gap-1 sm:gap-2">
+                          <img
+                            src={transfer.fromLogo}
+                            alt={transfer.from}
+                            className="w-6 h-6 sm:w-10 sm:h-10 object-contain"
+                          />
+                          <div className="text-center">
+                            <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Z</div>
+                            <div className="text-white font-black text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">{transfer.from}</div>
                           </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-white font-bold text-base sm:text-lg truncate">{transfer.player}</h3>
-                        <p className="text-gray-400 text-sm">{transfer.position}</p>
-                      </div>
-                    </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-center">
+                          <div className="text-2xl sm:text-4xl text-green-400 font-light tracking-tighter">→</div>
+                        </div>
 
-                    <div className="flex items-center justify-center gap-2 sm:gap-4">
-                      <div className="flex flex-col items-center gap-1 sm:gap-2">
-                        <img
-                          src={transfer.fromLogo}
-                          alt={transfer.from}
-                          className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
-                        />
-                        <div className="text-center">
-                          <div className="text-gray-400 text-xs">Z</div>
-                          <div className="text-white font-bold text-xs sm:text-sm truncate max-w-20 sm:max-w-none">{transfer.from}</div>
+                        <div className="flex flex-col items-center gap-1 sm:gap-2">
+                          <img
+                            src={transfer.toLogo}
+                            alt={transfer.to}
+                            className="w-6 h-6 sm:w-10 sm:h-10 object-contain"
+                          />
+                          <div className="text-center">
+                            <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest">DO</div>
+                            <div className="text-white font-black text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">{transfer.to}</div>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-xl sm:text-2xl text-green-400">→</div>
-                      <div className="flex flex-col items-center gap-1 sm:gap-2">
-                        <img
-                          src={transfer.toLogo}
-                          alt={transfer.to}
-                          className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
-                        />
-                        <div className="text-center">
-                          <div className="text-gray-400 text-xs">DO</div>
-                          <div className="text-white font-bold text-xs sm:text-sm truncate max-w-20 sm:max-w-none">{transfer.to}</div>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="text-center sm:text-right">
-                      <div className={`font-bold text-lg sm:text-xl ${
-                        transfer.type === 'loan' ? 'text-blue-400' : 'text-yellow-400'
-                      }`}>
-                        {transfer.amount}
+                      <div className="text-center sm:text-right flex-shrink-0 min-w-[100px]">
+                        <div className="text-white font-black text-sm sm:text-lg tracking-wider">{transfer.date}</div>
+                        <div className="text-blue-400/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Potwierdzone</div>
                       </div>
-                      <div className="text-gray-400 text-xs sm:text-sm">{transfer.date}</div>
                     </div>
                   </div>
-                </div>
-              ))}
-
-              {filteredTransfers.length === 0 && (
+                ))
+              ) : (
                 <div className="text-center py-12">
                   <p className="text-gray-400 text-lg">Brak transferów w tej kategorii</p>
                 </div>
