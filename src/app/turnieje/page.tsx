@@ -364,7 +364,7 @@ function TurniejeContent() {
 
     if (!challongeData) return [];
 
-    let allTeams: any[] = [];
+    const allTeams: any[] = [];
 
     // Format z grupami (nowy API)
     if (challongeData.groups && Array.isArray(challongeData.groups)) {

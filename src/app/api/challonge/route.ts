@@ -19,7 +19,7 @@ export async function GET() {
     const mainData = await mainResponse.json();
     const tournament = mainData.tournament;
     
-    let participants = tournament.participants?.map((p: any) => p.participant) || [];
+    const participants = tournament.participants?.map((p: any) => p.participant) || [];
     let matches = tournament.matches?.map((m: any) => m.match) || [];
 
     // If it's a two-stage tournament, group stage matches are often in sub-tournaments

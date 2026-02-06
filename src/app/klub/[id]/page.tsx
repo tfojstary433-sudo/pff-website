@@ -203,7 +203,7 @@ export default function KlubPage() {
 
     return starters.map((p: any) => {
       const pos = p.position?.toUpperCase() || 'CM';
-      let coords = { ...posCoords[pos] || { col: 3, row: 4 } };
+      const coords = { ...posCoords[pos] || { col: 3, row: 4 } };
       
       // Basic overlap prevention
       let key = `${coords.col}-${coords.row}`;
