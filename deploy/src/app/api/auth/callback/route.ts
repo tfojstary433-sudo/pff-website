@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 
 const CLIENT_ID = '1448788697653973082';
 const CLIENT_SECRET = 'CiW1atPyupU5QO1H2Q2iYzw7hjEvarOW';
-const REDIRECT_URI = 'http://localhost:3000/callback';
+const GUILD_ID = '1447302326971793520';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
+  const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const redirectUri = `${origin.replace(/\/$/, "")}/callback`;
 
   if (!code) {
     return NextResponse.json({ error: 'No code provided' }, { status: 400 });
@@ -21,8 +22,8 @@ export async function GET(request: Request) {
         client_secret: CLIENT_SECRET,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: REDIRECT_URI,
-        scope: 'identify email',
+        redirect_uri: redirectUri,
+        scope: 'identify email guilds guilds.members.read',
       }),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -44,6 +45,22 @@ export async function GET(request: Request) {
     });
 
     const userData = await userResponse.json();
+
+    // Get member info for roles
+    try {
+      const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+      });
+
+      if (memberResponse.ok) {
+        const memberData = await memberResponse.json();
+        userData.discordRoles = memberData.roles;
+      }
+    } catch (roleError) {
+      console.error('Error fetching guild roles:', roleError);
+    }
 
     return NextResponse.json(userData);
   } catch (error) {

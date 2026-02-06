@@ -94,6 +94,16 @@ export async function POST(request: Request) {
         cost: amount,
         timestamp: new Date().toISOString(),
       });
+    } else if (action === 'grantProducts') {
+      const { products } = body;
+      if (products && Array.isArray(products)) {
+        products.forEach(productId => {
+          if (!user.items[productId]) {
+            user.items[productId] = 0;
+          }
+          user.items[productId] += 1;
+        });
+      }
     }
 
     saveData(data);

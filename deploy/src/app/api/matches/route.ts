@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const response = await fetch(
-      'https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev/api/matches',
+      'https://88602c77-02c7-4b06-8b56-454baca5488c-00-38bejx2g3vlpx.picard.replit.dev/api/matches',
       {
         method: 'GET',
         headers: {

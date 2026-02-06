@@ -6,48 +6,90 @@ import { getAllPlayerStats } from './firebase';
 import { API_ENDPOINTS, TEAM_ID_MAPPING } from './constants';
 
 // Helper functions for team logos and colors
-function getTeamLogo(teamId: string, teamName?: string): string {
-  if (teamName) {
-    const normalizedName = teamName.toLowerCase();
+export function getTeamLogo(teamId: string | number, teamName?: string): string {
+  const idStr = String(teamId);
+  
+  // First try by direct ID (numeric or short)
+  const team = teams.find(t => t.id === idStr || t.shortName === idStr || t.id === TEAM_ID_MAPPING[idStr]);
+  if (team) return team.logo;
+
+  // Then try mapping numeric ID to short name
+  const mappedShortName = TEAM_ID_MAPPING[idStr];
+  if (mappedShortName) {
+    const mappedTeam = teams.find(t => t.id === mappedShortName || t.shortName === mappedShortName);
+    if (mappedTeam) return mappedTeam.logo;
+  }
+
+  // Then try by name
+  const nameToSearch = teamName || idStr;
+  if (nameToSearch) {
+    const normalizedName = nameToSearch.toLowerCase();
     const teamByName = teams.find(t => {
       const tName = t.name.toLowerCase();
       const tShort = t.shortName.toLowerCase();
       return tName === normalizedName || 
              normalizedName.includes(tName) || 
              tName.includes(normalizedName) ||
-             normalizedName.includes(tShort);
+             (tShort.length > 2 && (normalizedName.includes(tShort) || tShort.includes(normalizedName)));
     });
     if (teamByName) return teamByName.logo;
   }
   
-  const shortName = TEAM_ID_MAPPING[teamId] || teamId;
-  const team = teams.find(t => t.id === shortName || t.shortName === shortName);
-  return team?.logo || 'https://i.ibb.co/TB027G07/czarnepff-1.png';
+  return 'https://i.ibb.co/TB027G07/czarnepff-1.png';
 }
 
-function getTeamColor(teamId: string, teamName?: string): string {
-  if (teamName) {
-    const normalizedName = teamName.toLowerCase();
+export function getTeamColor(teamId: string | number, teamName?: string): string {
+  const idStr = String(teamId);
+  const team = teams.find(t => t.id === idStr || t.shortName === idStr || t.id === TEAM_ID_MAPPING[idStr]);
+  if (team) return team.color || '#3b82f6';
+
+  const mappedShortName = TEAM_ID_MAPPING[idStr];
+  if (mappedShortName) {
+    const mappedTeam = teams.find(t => t.id === mappedShortName || t.shortName === mappedShortName);
+    if (mappedTeam) return mappedTeam.color || '#3b82f6';
+  }
+
+  const nameToSearch = teamName || idStr;
+  if (nameToSearch) {
+    const normalizedName = nameToSearch.toLowerCase();
     const teamByName = teams.find(t => {
       const tName = t.name.toLowerCase();
       const tShort = t.shortName.toLowerCase();
       return tName === normalizedName || 
              normalizedName.includes(tName) || 
-             tName.includes(normalizedName) ||
-             normalizedName.includes(tShort);
+             tName.includes(normalizedName);
     });
     if (teamByName) return teamByName.color || '#3b82f6';
   }
 
-  const shortName = TEAM_ID_MAPPING[teamId] || teamId;
-  const team = teams.find(t => t.id === shortName || t.shortName === shortName);
-  return team?.color || '#3b82f6';
+  return '#3b82f6';
+}
+
+export function getTeamName(teamId: string | number): string {
+  const idStr = String(teamId);
+  const team = teams.find(t => t.id === idStr || t.shortName === idStr || t.id === TEAM_ID_MAPPING[idStr]);
+  if (team) return team.name;
+
+  const mappedShortName = TEAM_ID_MAPPING[idStr];
+  if (mappedShortName) {
+    const mappedTeam = teams.find(t => t.id === mappedShortName || t.shortName === mappedShortName);
+    if (mappedTeam) return mappedTeam.name;
+  }
+
+  // If the teamId itself looks like a name (not a number or short code)
+  if (isNaN(Number(idStr)) && idStr.length > 3) {
+    return idStr;
+  }
+
+  return idStr || 'Nieznany Klub';
 }
 
 export interface PlayerStats {
   playerId: number;
   name: string;
   teamId: string;
+  teamName?: string;
+  teamLogo?: string;
   goals: number;
   assists: number;
   points: number;
@@ -113,177 +155,196 @@ export function useMatchStats() {
 
   const fetchFromServer = async () => {
     try {
-      // Fetch from external APIs and Firebase
-      const [playersRes, tableRes, historyRes, matchesHistoryRes, firebaseStats] = await Promise.all([
-        fetch(API_ENDPOINTS.STATS),
-        fetch(API_ENDPOINTS.TABLE),
+      // Use the new API endpoints requested by user
+      const [historyRes, matchesRes] = await Promise.all([
         fetch(API_ENDPOINTS.PLAYERS_HISTORY).catch(() => null),
-        fetch('/api/history').catch(() => null),
-        getAllPlayerStats().catch(() => ({}))
+        fetch(API_ENDPOINTS.MATCHES).catch(() => null)
       ]);
 
-      let combinedPlayers: PlayerStats[] = [];
       let historyData: any = null;
+      let matchesData: any = null;
 
-      if (historyRes && historyRes.ok) {
-        historyData = await historyRes.json();
-      }
+      if (historyRes && historyRes.ok) historyData = await historyRes.json();
+      if (matchesRes && matchesRes.ok) matchesData = await matchesRes.json();
 
-      // Process matches history
-      if (matchesHistoryRes && matchesHistoryRes.ok) {
-        const historyMatches = await matchesHistoryRes.json();
-        if (Array.isArray(historyMatches)) {
-          const finishedMap: Record<string, MatchResult> = {};
-          historyMatches.forEach((m: any) => {
-            finishedMap[m.matchId] = {
-              matchId: m.matchId,
-              homeScore: m.homeScore,
-              awayScore: m.awayScore,
-              homeTeamId: m.homeTeamId,
-              awayTeamId: m.awayTeamId,
-              scorers: m.scorers || [],
-              finished: true,
-              timestamp: m.date
-            };
-          });
-          setFinishedMatches(prev => ({ ...prev, ...finishedMap }));
-          localStorage.setItem('matchStats', JSON.stringify(finishedMap));
-        }
-      }
+      let combinedPlayers: PlayerStats[] = [];
 
-      console.log('Players API response:', playersRes.status, playersRes.statusText);
-      if (playersRes.ok) {
-        const data = await playersRes.json();
-        const playersData = Array.isArray(data) ? data : (data.players || []);
-        if (Array.isArray(playersData) && playersData.length > 0) {
-          combinedPlayers = playersData.map(player => {
-            const pId = player.id || player.playerId;
-            const pName = player.name || player.username;
+      // Process Player Stats from players-history.json
+      if (historyData && historyData.players) {
+        combinedPlayers = Object.entries(historyData.players).map(([id, player]: [string, any]) => {
+          let goals = 0;
+          let assists = 0;
+          let yellowCards = 0;
+          let redCards = 0;
+          let cleanSheets = 0;
+
+          // Aggregating from matches if available
+          const matches = player.matches || (player.matchHistory ? Object.values(player.matchHistory) : []);
+          matches.forEach((m: any) => {
+            // Goals can be a number or an array of goal events
+            const matchGoals = Array.isArray(m.goals) ? m.goals.length : (m.goals || 0);
+            const matchAssists = Array.isArray(m.assists) ? m.assists.length : (m.assists || 0);
             
-            // Try to get country and position from history
-            let country = player.country;
-            let position = player.position;
-            
-            if (historyData && historyData.players) {
-              const hPlayer = historyData.players[pId] || Object.values(historyData.players).find((p: any) => p.name === pName);
-              if (hPlayer) {
-                if (!country) country = hPlayer.country;
-                if (!position || position === '---') position = hPlayer.position;
-              }
+            goals += matchGoals;
+            assists += matchAssists;
+
+            // Handle cards
+            if (m.cards && Array.isArray(m.cards)) {
+              m.cards.forEach((c: any) => {
+                if (c.type === 'yellow' || c.color === 'yellow') yellowCards++;
+                if (c.type === 'red' || c.color === 'red') redCards++;
+              });
+            } else {
+              yellowCards += m.yellowCards || 0;
+              redCards += m.redCards || 0;
             }
 
-            return {
-              playerId: pId,
-              name: pName,
-              teamId: player.teamId || 'UNK',
-              goals: player.goals || 0,
-              assists: player.assists || 0,
-              yellowCards: player.yellowCards || 0,
-              redCards: player.redCards || 0,
-              cleanSheets: player.cleanSheets || 0,
-              points: (player.goals || 0) + (player.assists || 0),
-              country: country,
-              position: position
-            };
+            // Clean sheet logic for goalkeepers
+            if ((player.position === 'BR' || player.position === 'GK') && m.cleanSheet) {
+              cleanSheets++;
+            }
           });
-        }
-      }
 
-      // Merge with Firebase stats
-      if (firebaseStats && Object.keys(firebaseStats).length > 0) {
-        Object.entries(firebaseStats).forEach(([id, stats]: [string, any]) => {
-          const existingPlayer = combinedPlayers.find(p => p.playerId?.toString() === id || p.name === stats.name);
-          if (existingPlayer) {
-            existingPlayer.goals = Math.max(existingPlayer.goals, stats.goals || 0);
-            existingPlayer.assists = Math.max(existingPlayer.assists, stats.assists || 0);
-            existingPlayer.yellowCards = Math.max(existingPlayer.yellowCards, stats.yellowCards || 0);
-            existingPlayer.redCards = Math.max(existingPlayer.redCards, stats.redCards || 0);
-            existingPlayer.cleanSheets = Math.max(existingPlayer.cleanSheets, stats.cleanSheets || 0);
-            existingPlayer.points = existingPlayer.goals + existingPlayer.assists;
-            if (stats.teamId && (existingPlayer.teamId === 'UNK' || !existingPlayer.teamId)) {
-              existingPlayer.teamId = stats.teamId;
-            }
-            if (stats.country && !existingPlayer.country) {
-              existingPlayer.country = stats.country;
-            }
-            if (stats.position && !existingPlayer.position) {
-              existingPlayer.position = stats.position;
-            }
-          } else {
-            // Try to get country and position from history for Firebase players too
-            let country = stats.country;
-            let position = stats.position;
-            if (historyData && historyData.players) {
-              const hPlayer = historyData.players[id] || Object.values(historyData.players).find((p: any) => p.name === stats.name);
-              if (hPlayer) {
-                if (!country) country = hPlayer.country;
-                if (!position || position === '---') position = hPlayer.position;
-              }
-            }
-
-            combinedPlayers.push({
-              playerId: parseInt(id) || 0,
-              name: stats.name || `Gracz ${id}`,
-              teamId: stats.teamId || 'UNK',
-              goals: stats.goals || 0,
-              assists: stats.assists || 0,
-              yellowCards: stats.yellowCards || 0,
-              redCards: stats.redCards || 0,
-              cleanSheets: stats.cleanSheets || 0,
-              points: (stats.goals || 0) + (stats.assists || 0),
-              country: country,
-              position: position
+          // Find the latest team based on match history dates
+          let latestTeamId = player.teamId || 'UNK';
+          
+          if (player.matchHistory) {
+            // Sort matchHistory keys (which contain timestamps like match_1234567)
+            const matchKeys = Object.keys(player.matchHistory).sort((a, b) => {
+              const timeA = parseInt(a.split('_')[1]) || 0;
+              const timeB = parseInt(b.split('_')[1]) || 0;
+              return timeB - timeA; // Descending
             });
+            
+            if (matchKeys.length > 0) {
+              latestTeamId = player.matchHistory[matchKeys[0]].playerTeam || player.matchHistory[matchKeys[0]].teamId || latestTeamId;
+            }
+          } else if (player.matches && player.matches.length > 0) {
+            // If it's an array, sort by date/timestamp if available
+            const sortedMatches = [...player.matches].sort((a, b) => {
+              const dateA = new Date(a.date || a.timestamp || 0).getTime();
+              const dateB = new Date(b.date || b.timestamp || 0).getTime();
+              return dateB - dateA;
+            });
+            latestTeamId = sortedMatches[0].playerTeam || sortedMatches[0].teamId || latestTeamId;
+          }
+
+          return {
+            playerId: parseInt(id) || 0,
+            name: player.name || "Nieznany",
+            teamId: latestTeamId,
+            teamName: getTeamName(latestTeamId),
+            teamLogo: getTeamLogo(latestTeamId, getTeamName(latestTeamId)),
+            goals,
+            assists,
+            yellowCards,
+            redCards,
+            cleanSheets,
+            points: goals + assists,
+            country: player.country || "PL",
+            position: player.position || "---",
+            avatar: player.avatar
+          };
+        });
+        
+        if (combinedPlayers.length > 0) {
+          setTopScorers(combinedPlayers);
+          localStorage.setItem('topScorers', JSON.stringify(combinedPlayers));
+        }
+      }
+
+      // Process Team Standings from /api/matches
+      if (matchesData) {
+        const matchesArray = Array.isArray(matchesData) ? matchesData : (matchesData.matches || []);
+        const teamStatsMap: Record<string, TeamStanding> = {};
+        const finishedMap: Record<string, MatchResult> = {};
+
+        matchesArray.forEach((m: any) => {
+          const mId = m.id || m.matchId || m.uuid || Math.random().toString();
+          const isFinished = m.status === 'FINISHED' || m.status === 'finished' || m.status === 'ZAKOŃCZONY';
+          
+          if (!isFinished) return;
+
+          const scoreA = m.homeScore ?? m.scoreA ?? 0;
+          const scoreB = m.awayScore ?? m.scoreB ?? 0;
+          const teamA = m.homeTeamId || m.teamA;
+          const teamB = m.awayTeamId || m.teamB;
+
+          finishedMap[mId] = {
+            matchId: mId,
+            homeScore: scoreA,
+            awayScore: scoreB,
+            homeTeamId: teamA,
+            awayTeamId: teamB,
+            scorers: m.scorers || [],
+            finished: true
+          };
+
+          [teamA, teamB].forEach(tId => {
+            if (!tId) return;
+            if (!teamStatsMap[tId]) {
+              const shortName = TEAM_ID_MAPPING[tId] || (typeof tId === 'string' ? tId.substring(0, 3).toUpperCase() : tId);
+              const teamData = teams.find(t => t.id === shortName || t.shortName === shortName || t.id === tId);
+              
+              teamStatsMap[tId] = {
+                teamId: tId,
+                played: 0,
+                won: 0,
+                drawn: 0,
+                lost: 0,
+                goalsFor: 0,
+                goalsAgainst: 0,
+                goalDifference: 0,
+                points: 0,
+                team: {
+                  id: tId,
+                  name: teamData?.name || getTeamName(tId),
+                  shortName: shortName,
+                  logo: getTeamLogo(tId, teamData?.name),
+                  color: getTeamColor(tId, teamData?.name)
+                }
+              };
+            }
+          });
+
+          if (teamA && teamB) {
+            teamStatsMap[teamA].played++;
+            teamStatsMap[teamB].played++;
+            teamStatsMap[teamA].goalsFor += scoreA;
+            teamStatsMap[teamA].goalsAgainst += scoreB;
+            teamStatsMap[teamB].goalsFor += scoreB;
+            teamStatsMap[teamB].goalsAgainst += scoreA;
+
+            if (scoreA > scoreB) {
+              teamStatsMap[teamA].won++;
+              teamStatsMap[teamA].points += 3;
+              teamStatsMap[teamB].lost++;
+            } else if (scoreA < scoreB) {
+              teamStatsMap[teamB].won++;
+              teamStatsMap[teamB].points += 3;
+              teamStatsMap[teamA].lost++;
+            } else {
+              teamStatsMap[teamA].drawn++;
+              teamStatsMap[teamB].drawn++;
+              teamStatsMap[teamA].points += 1;
+              teamStatsMap[teamB].points += 1;
+            }
           }
         });
+
+        const calculatedStandings = Object.values(teamStatsMap).map(s => ({
+          ...s,
+          goalDifference: s.goalsFor - s.goalsAgainst
+        })).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
+
+        setStandings(calculatedStandings);
+        localStorage.setItem('standings', JSON.stringify(calculatedStandings));
+        
+        setFinishedMatches(finishedMap);
+        localStorage.setItem('matchStats', JSON.stringify(finishedMap));
       }
-
-      if (combinedPlayers.length > 0) {
-        setTopScorers(combinedPlayers);
-        localStorage.setItem('topScorers', JSON.stringify(combinedPlayers));
-      }
-
-      console.log('Table API response:', tableRes.status, tableRes.statusText);
-      if (tableRes.ok) {
-        const data = await tableRes.json();
-        console.log('Table data:', data);
-        const tableData = Array.isArray(data) ? data : (data.standings || []);
-        if (Array.isArray(tableData) && tableData.length > 0) {
-          // Map API data to expected format
-          const mappedStandings = tableData.map((standing, index) => {
-            // Map team ID to short name for logos
-            const teamId = standing.id?.toString() || standing.teamId?.toString() || (index + 1).toString();
-            const shortName = TEAM_ID_MAPPING[teamId] || standing.team?.shortName || standing.name?.substring(0, 3).toUpperCase() || 'UNK';
-
-            return {
-              teamId: teamId,
-              played: standing.played || 0,
-              won: standing.won || 0,
-              drawn: standing.drawn || 0,
-              lost: standing.lost || 0,
-              goalsFor: standing.goalsFor || 0,
-              goalsAgainst: standing.goalsAgainst || 0,
-              goalDifference: (standing.goalsFor || 0) - (standing.goalsAgainst || 0),
-              points: standing.points || 0,
-              position: standing.position || (index + 1),
-              team: standing.team || {
-                id: shortName,
-                name: standing.name || 'Unknown Team',
-                shortName: shortName,
-                logo: getTeamLogo(shortName, standing.name),
-                color: getTeamColor(shortName, standing.name)
-              }
-            };
-          });
-          setStandings(mappedStandings);
-          localStorage.setItem('standings', JSON.stringify(mappedStandings));
-        }
-      }
-
-      // For now, keep loading local data as fallback
-      loadLocalData();
     } catch (error) {
-      console.error('Error fetching from external APIs:', error);
+      console.error('Error fetching statistics:', error);
       loadLocalData();
     }
   };

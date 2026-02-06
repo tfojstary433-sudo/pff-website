@@ -12,42 +12,67 @@ export async function POST(request: NextRequest) {
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-    const { priceId, userId, productType, productData } = await request.json();
+    const { userId, cart, customerEmail } = await request.json();
 
-    if (!priceId || !userId || !productType) {
+    if (!userId || !cart || !Array.isArray(cart)) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
+    const line_items = cart.map(item => ({
+      price_data: {
+        currency: 'pln',
+        product_data: {
+          name: item.name,
+          description: item.description || (item.regularTokens ? `${item.regularTokens} tokenów + ${item.bonusTokens} bonus` : ''),
+          images: [item.logo || item.image],
+        },
+        unit_amount: Math.round(item.price * 100), // Convert to grosze
+      },
+      quantity: item.quantity || 1,
+    }));
+
+    // Aggregate metadata for fulfillment
+    let totalRegular = 0;
+    let totalBonus = 0;
+    let totalVipDays = 0;
+    let hasVip = false;
+    const itemsList: string[] = [];
+
+    cart.forEach(item => {
+      const q = item.quantity || 1;
+      if (item.type === 'tokens') {
+        totalRegular += (item.regularTokens || 0) * q;
+        totalBonus += (item.bonusTokens || 0) * q;
+      } else if (item.type === 'vip') {
+        totalVipDays += (item.days || 0) * q;
+        hasVip = true;
+      } else if (item.type === 'pln-product' || item.type === 'product') {
+        // Even if it's a token product, if we are in Stripe session, it means it's part of a larger purchase
+        for (let i = 0; i < q; i++) {
+          itemsList.push(item.id);
+        }
+      }
+    });
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'blik'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'pln',
-            product_data: {
-              name: productData.name,
-              description: productData.description,
-              images: [productData.image],
-            },
-            unit_amount: productData.price * 100, // Convert to grosze
-          },
-          quantity: 1,
-        },
-      ],
+      line_items,
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/sklep/sukces?session_id={CHECKOUT_SESSION_ID}&type=${productType}`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/sklep/sukces?session_id={CHECKOUT_SESSION_ID}&type=cart`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/sklep`,
       metadata: {
         userId: userId.toString(),
-        productType,
-        productId: productData.id,
-        days: productData.days?.toString() || '0',
+        regularTokens: totalRegular.toString(),
+        bonusTokens: totalBonus.toString(),
+        vipDays: totalVipDays.toString(),
+        hasVip: hasVip.toString(),
+        products: itemsList.join(','),
       },
-      customer_email: productData.customerEmail,
+      customer_email: customerEmail,
     });
 
     return NextResponse.json({

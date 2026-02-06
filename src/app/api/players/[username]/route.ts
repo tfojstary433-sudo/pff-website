@@ -177,7 +177,7 @@ export async function GET(
         // Resolve userId if unknown
         if (userId === 'unknown') {
           const playerEntry = Object.entries(historyData.players).find(([_, p]: [string, any]) => 
-            p.name?.toLowerCase() === resolvedUsername.toLowerCase()
+            p.name?.toLowerCase().trim() === resolvedUsername.toLowerCase().trim()
           );
           if (playerEntry) userId = playerEntry[0];
         }
@@ -186,7 +186,7 @@ export async function GET(
         playerHistoryData = historyData.players[userId];
         if (!playerHistoryData) {
           playerHistoryData = Object.values(historyData.players).find((p: any) => 
-            p.name?.toLowerCase() === resolvedUsername.toLowerCase() ||
+            p.name?.toLowerCase().trim() === resolvedUsername.toLowerCase().trim() ||
             p.robloxId?.toString() === userId
           );
         }

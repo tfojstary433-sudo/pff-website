@@ -27,14 +27,14 @@ function NewsCard({ article, large = false, index = 0 }: { article: Article; lar
             className="object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110"
             suppressHydrationWarning={true}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a] opacity-50" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/30 opacity-50" />
           <div className="absolute bottom-4 left-4 px-3 py-1 bg-[#00ccff]/20 backdrop-blur-md rounded-full border border-[#00ccff]/30">
             <span className="text-xs font-black text-[#00ccff] tracking-wider uppercase">
               {article.category}
             </span>
           </div>
         </div>
-        <div className="flex-1 p-6 md:p-10 flex flex-col justify-center bg-gradient-to-br from-[#0a0a0a] to-[#0f0f1a] relative overflow-hidden">
+        <div className="flex-1 p-6 md:p-10 flex flex-col justify-center bg-transparent backdrop-blur-md relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ccff]/5 rounded-full blur-3xl" />
           <h3 className="text-2xl font-black text-white mb-4 leading-tight tracking-normal uppercase group-hover:text-[#00ccff] transition-colors duration-300">
             {article.title}
@@ -109,7 +109,7 @@ export function NewsSection() {
 
       <div className="container mx-auto px-4 max-w-7xl relative z-10">
         <div className="flex flex-col items-center mb-20">
-          <div className="gradient-border px-16 py-8 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col items-center relative overflow-hidden bg-[#0a0a0a]">
+          <div className="gradient-border px-16 py-8 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col items-center relative overflow-hidden bg-transparent backdrop-blur-md">
             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-[#00ccff] to-transparent" />
             <h2 className="relative z-10 text-4xl md:text-6xl font-black text-white tracking-tighter uppercase">
@@ -139,7 +139,10 @@ export function NewsSection() {
         </div>
 
         <div className="mt-16 flex justify-center">
-          <button className="relative group px-12 py-4 rounded-xl font-black tracking-tighter uppercase transition-all overflow-hidden ripple">
+          <Link 
+            href="/aktualnosci"
+            className="relative group px-12 py-4 rounded-xl font-black tracking-tighter uppercase transition-all overflow-hidden"
+          >
             <div className="absolute inset-0 bg-gradient-to-r from-[#00ccff] to-[#0066ff] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="absolute inset-0 bg-white/5 group-hover:bg-transparent transition-colors" />
             <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[10px] group-hover:bg-transparent transition-colors duration-300" />
@@ -149,7 +152,7 @@ export function NewsSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </span>
-          </button>
+          </Link>
         </div>
       </div>
     </section>

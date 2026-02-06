@@ -84,163 +84,179 @@ export default function TransferyPage() {
     fetchTransfers();
   }, []);
 
-  const filteredTransfers = transfers; // Simplification for now as history doesn't specify loan/transfer type
+  const filteredTransfers = transfers.filter(transfer => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'incoming') return true; // Most are incoming to a team
+    if (activeTab === 'outgoing') return true; // Most are outgoing from a team
+    if (activeTab === 'loans') return false;   // No loan data currently
+    return true;
+  });
 
   return (
     <>
       <Navbar />
-      <div className="relative py-10 overflow-hidden bg-[#003087]">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-full h-full" style={{
-            backgroundImage: `
-              linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%),
-              repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)
-            `
-          }}></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-900/30 via-blue-800/40 to-blue-900/30 rounded-2xl border border-white/10 p-6 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-1 h-16 bg-gradient-to-b from-transparent via-white to-transparent rounded-full"></div>
-                <img
-                  src="https://i.ibb.co/MyfXtGLH/ekstraklasabaner-removebg-preview.png"
-                  alt="Logo"
-                  className="h-14 w-auto"
-                />
-              </div>
-
-              <h1 className="text-4xl font-black text-white tracking-tight uppercase">
-                TRANSFERY 2025/2026
-              </h1>
-
-              <div className="w-1 h-16 bg-gradient-to-b from-transparent via-white to-transparent rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      
       <div
-        className="relative min-h-screen bg-cover bg-center"
-        style={{
-          backgroundImage: 'url(https://i.ibb.co/G4rD13m6/tlo.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
+        className="relative min-h-screen bg-transparent"
       >
-        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1000px] bg-blue-600/20 blur-[180px] pointer-events-none -z-10" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-400/10 blur-[150px] pointer-events-none -z-10" />
+        <div className="absolute top-1/4 left-0 w-[400px] h-[400px] bg-cyan-500/10 blur-[120px] pointer-events-none -z-10" />
 
         <div className="relative z-10 container mx-auto px-4 py-12">
+          {/* Centered Logo Section */}
+          <div className="mb-12 flex justify-center">
+            <div className="relative group">
+              <img
+                src="https://i.ibb.co/MyfXtGLH/ekstraklasabaner-removebg-preview.png"
+                alt="7U7 Ekstraklasa"
+                className="h-12 md:h-20 w-auto object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+          </div>
+
           <div className="max-w-6xl mx-auto">
             {/* Transfer tabs */}
-            <div className="flex flex-wrap gap-2 sm:gap-4 mb-8 justify-center">
+            <div className="flex flex-wrap gap-2 sm:gap-3 mb-12 justify-center lg:justify-start">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-bold uppercase rounded-lg transition-colors ${
+                className={`px-6 py-2.5 text-sm font-black uppercase tracking-tight rounded-full transition-all duration-300 ${
                   activeTab === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                    ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
               >
                 Wszystkie
               </button>
               <button
                 onClick={() => setActiveTab('incoming')}
-                className={`px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-bold uppercase rounded-lg transition-colors ${
+                className={`px-6 py-2.5 text-sm font-black uppercase tracking-tight rounded-full transition-all duration-300 ${
                   activeTab === 'incoming'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                    ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
               >
-                Przybyli
+                Gracze przychodzący
               </button>
               <button
                 onClick={() => setActiveTab('outgoing')}
-                className={`px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-bold uppercase rounded-lg transition-colors ${
+                className={`px-6 py-2.5 text-sm font-black uppercase tracking-tight rounded-full transition-all duration-300 ${
                   activeTab === 'outgoing'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                    ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
               >
-                Odeszli
+                Gracze odchodzący
               </button>
               <button
                 onClick={() => setActiveTab('loans')}
-                className={`px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-bold uppercase rounded-lg transition-colors ${
+                className={`px-6 py-2.5 text-sm font-black uppercase tracking-tight rounded-full transition-all duration-300 ${
                   activeTab === 'loans'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                    ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
               >
                 Wypożyczenia
               </button>
             </div>
 
-            {/* Transfer list */}
-            <div className="space-y-4">
+            {/* Transfer list header */}
+            <div className="hidden lg:grid grid-cols-12 gap-4 px-6 mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-white/40 italic">
+              <div className="col-span-4">Gracz</div>
+              <div className="col-span-4 text-center">
+                {activeTab === 'incoming' ? 'Z:' : activeTab === 'outgoing' ? 'Do:' : 'Transfer'}
+              </div>
+              <div className="col-span-2 text-center">Pozycja</div>
+              <div className="col-span-2 text-right">Data</div>
+            </div>
+
+            {/* Transfer list container */}
+            <div className="bg-white/10 border border-white/10 rounded-[32px] overflow-hidden backdrop-blur-2xl shadow-2xl">
               {loading ? (
                 <div className="flex justify-center py-20">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
               ) : filteredTransfers.length > 0 ? (
-                filteredTransfers.map((transfer) => (
-                  <div key={transfer.id} className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-6 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="relative flex-shrink-0">
-                          <RobloxAvatar
-                            username={transfer.robloxUsername}
-                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-blue-500"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-white font-bold text-base sm:text-lg truncate">{transfer.player}</h3>
-                          <p className="text-gray-400 text-sm">{transfer.position}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-center gap-4 sm:gap-12 flex-grow max-w-2xl">
-                        <div className="flex flex-col items-center gap-1 sm:gap-2">
-                          <img
-                            src={transfer.fromLogo}
-                            alt={transfer.from}
-                            className="w-6 h-6 sm:w-10 sm:h-10 object-contain"
-                          />
-                          <div className="text-center">
-                            <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Z</div>
-                            <div className="text-white font-black text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">{transfer.from}</div>
+                <div className="divide-y divide-white/5">
+                  {filteredTransfers.map((transfer) => (
+                    <div key={transfer.id} className="p-6 sm:p-10 hover:bg-white/5 transition-all group">
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                        {/* Player info */}
+                        <div className="col-span-4 flex items-center gap-6">
+                          <div className="relative flex-shrink-0">
+                            <RobloxAvatar
+                              username={transfer.robloxUsername}
+                              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-white/10 group-hover:border-white/30 transition-all shadow-2xl"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-white font-black text-2xl sm:text-3xl uppercase tracking-tight italic truncate group-hover:text-blue-400 transition-colors">
+                              {transfer.player}
+                            </h3>
+                            <div className="text-white/30 text-xs font-black uppercase tracking-widest mt-1">Zawodnik</div>
                           </div>
                         </div>
-                        
-                        <div className="flex flex-col items-center">
-                          <div className="text-2xl sm:text-4xl text-green-400 font-light tracking-tighter">→</div>
+
+                        {/* Transfer details */}
+                        <div className="col-span-4 flex items-center justify-center gap-8 sm:gap-12">
+                          {activeTab === 'outgoing' ? (
+                            <>
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/5 rounded-2xl p-2.5 flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                                  <img src={transfer.toLogo} alt={transfer.to} className="w-full h-full object-contain brightness-125" />
+                                </div>
+                                <span className="text-xs text-white/40 font-black uppercase italic truncate max-w-[100px]">{transfer.to}</span>
+                              </div>
+                              
+                              <div className="text-3xl sm:text-5xl text-red-500 font-light group-hover:scale-150 transition-transform drop-shadow-[0_0_15px_rgba(239,68,68,0.3)]">←</div>
+
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/5 rounded-2xl p-2.5 flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                                  <img src={transfer.fromLogo} alt={transfer.from} className="w-full h-full object-contain brightness-125" />
+                                </div>
+                                <span className="text-xs text-white/40 font-black uppercase italic truncate max-w-[100px]">{transfer.from}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/5 rounded-2xl p-2.5 flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                                  <img src={transfer.fromLogo} alt={transfer.from} className="w-full h-full object-contain brightness-125" />
+                                </div>
+                                <span className="text-xs text-white/40 font-black uppercase italic truncate max-w-[100px]">{transfer.from}</span>
+                              </div>
+                              
+                              <div className="text-3xl sm:text-5xl text-green-400 font-light group-hover:scale-150 transition-transform drop-shadow-[0_0_15px_rgba(74,222,128,0.3)]">→</div>
+
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/5 rounded-2xl p-2.5 flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                                  <img src={transfer.toLogo} alt={transfer.to} className="w-full h-full object-contain brightness-125" />
+                                </div>
+                                <span className="text-xs text-white/40 font-black uppercase italic truncate max-w-[100px]">{transfer.to}</span>
+                              </div>
+                            </>
+                          )}
                         </div>
 
-                        <div className="flex flex-col items-center gap-1 sm:gap-2">
-                          <img
-                            src={transfer.toLogo}
-                            alt={transfer.to}
-                            className="w-6 h-6 sm:w-10 sm:h-10 object-contain"
-                          />
-                          <div className="text-center">
-                            <div className="text-gray-400 text-[10px] font-black uppercase tracking-widest">DO</div>
-                            <div className="text-white font-black text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">{transfer.to}</div>
+                        {/* Position */}
+                        <div className="col-span-2 flex justify-center">
+                          <div className="px-5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-[14px] font-black uppercase tracking-tight italic shadow-lg group-hover:bg-white/10 transition-colors">
+                            {transfer.position}
                           </div>
                         </div>
-                      </div>
 
-                      <div className="text-center sm:text-right flex-shrink-0 min-w-[100px]">
-                        <div className="text-white font-black text-sm sm:text-lg tracking-wider">{transfer.date}</div>
-                        <div className="text-blue-400/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Potwierdzone</div>
+                        {/* Date */}
+                        <div className="col-span-2 text-center lg:text-right">
+                          <div className="text-white font-black text-xl sm:text-2xl uppercase tracking-tight italic">{transfer.date}</div>
+                          <div className="text-blue-400/60 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Potwierdzone</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-400 text-lg">Brak transferów w tej kategorii</p>
+                <div className="text-center py-20">
+                  <p className="text-white/40 font-black uppercase tracking-widest text-sm italic">Brak transferów w tej kategorii</p>
                 </div>
               )}
             </div>

@@ -4,10 +4,10 @@ import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import Link from 'next/link';
 import { teams } from '@/lib/data';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export default function KlubyPage() {
-  const displayTeams = [
+  const displayTeams = useMemo(() => [
     'Zawisza Bydgoszcz',
     'Arka Gdynia',
     'Unia Skierniewice',
@@ -24,11 +24,11 @@ export default function KlubyPage() {
     'Chojniczanka Chojnice',
     'Jagiellonia Białystok',
     'Wisła Płock'
-  ];
+  ], []);
 
-  const filteredTeams = teams.filter(team =>
+  const filteredTeams = useMemo(() => teams.filter(team =>
     displayTeams.includes(team.name)
-  );
+  ), [displayTeams]);
 
   const [playerCounts, setPlayerCounts] = useState<{ [key: string]: number }>({});
 
@@ -40,6 +40,7 @@ export default function KlubyPage() {
       for (const team of filteredTeams) {
         try {
           const response = await fetch(`/api/club/players/${team.id}`);
+          if (!response.ok) continue;
           const data = await response.json();
           counts[team.id] = data.players ? data.players.length : 0;
         } catch (error) {
@@ -48,66 +49,42 @@ export default function KlubyPage() {
         }
       }
 
-      setPlayerCounts(counts);
+      setPlayerCounts(prev => ({ ...prev, ...counts }));
     };
 
-    fetchPlayerCounts();
+    if (filteredTeams.length > 0) {
+      fetchPlayerCounts();
+    }
   }, [filteredTeams]);
 
   return (
     <>
       <Navbar />
       
-      <div className="relative py-10 overflow-hidden bg-[#003087]">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-full h-full" style={{
-            backgroundImage: `
-              linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%),
-              repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)
-            `
-          }}></div>
-        </div>
-        
+      <div 
+        className="relative min-h-screen bg-transparent py-16"
+      >
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1000px] bg-blue-600/20 blur-[180px] pointer-events-none -z-10" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-400/10 blur-[150px] pointer-events-none -z-10" />
+        <div className="absolute top-1/4 left-0 w-[400px] h-[400px] bg-cyan-500/10 blur-[120px] pointer-events-none -z-10" />
+
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-900/30 via-blue-800/40 to-blue-900/30 rounded-2xl border border-white/10 p-6 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-1 h-16 bg-gradient-to-b from-transparent via-white to-transparent rounded-full"></div>
-                <img 
-                  src="https://i.ibb.co/MyfXtGLH/ekstraklasabaner-removebg-preview.png" 
-                  alt="Logo" 
-                  className="h-14 w-auto"
-                />
-              </div>
-              
-              <h1 className="text-4xl font-black text-white tracking-tight uppercase">
-                KLUBY 2025/2026
-              </h1>
-              
-              <div className="w-1 h-16 bg-gradient-to-b from-transparent via-white to-transparent rounded-full"></div>
+          <div className="mb-12 flex justify-center">
+            <div className="relative group">
+              <img
+                src="https://i.ibb.co/MyfXtGLH/ekstraklasabaner-removebg-preview.png"
+                alt="7U7 Ekstraklasa"
+                className="h-20 md:h-32 w-auto object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] group-hover:scale-105 transition-transform duration-500"
+              />
             </div>
           </div>
-        </div>
-      </div>
 
-      <div 
-        className="relative min-h-screen bg-cover bg-center py-16"
-        style={{
-          backgroundImage: 'url(https://i.ibb.co/G4rD13m6/tlo.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
-      >
-        <div className="absolute inset-0 bg-black/70"></div>
-        
-        <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredTeams.map((team) => (
               <Link
                 key={team.id}
                 href={`/klub/${team.id}`}
-                className="bg-gray-800/50 hover:bg-gray-700/50 rounded-2xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 shadow-xl flex flex-col items-center justify-center min-h-[250px] backdrop-blur-sm group"
+                className="bg-white/10 hover:bg-white/20 rounded-2xl p-8 border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-105 shadow-xl flex flex-col items-center justify-center min-h-[250px] backdrop-blur-2xl group"
               >
                 <div className="mb-6 relative">
                   <div 

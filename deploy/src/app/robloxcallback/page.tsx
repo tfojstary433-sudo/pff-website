@@ -10,7 +10,7 @@ function CallbackContent() {
 
   useEffect(() => {
     const code = searchParams.get('code');
-    const state = searchParams.get('state');
+    const state = searchParams.get('state') || 'roblox';
 
     if (code) {
       const apiPath = state === 'discord' ? '/api/auth/callback' : '/api/auth/roblox/callback';
@@ -33,28 +33,7 @@ function CallbackContent() {
               };
               localStorage.setItem('discord_user', JSON.stringify(userData));
             } else {
-              const existingUserStr = localStorage.getItem('discord_user');
-              let userData;
-              if (existingUserStr) {
-                const existingUser = JSON.parse(existingUserStr);
-                userData = {
-                  ...existingUser,
-                  discordId: data.id,
-                  discordUsername: data.username,
-                  discordAvatar: data.avatar,
-                  discordRoles: data.discordRoles || [],
-                  email: data.email || existingUser.email
-                };
-              } else {
-                userData = {
-                  ...data,
-                  discordId: data.id,
-                  discordUsername: data.username,
-                  discordAvatar: data.avatar,
-                  discordRoles: data.discordRoles || []
-                };
-              }
-              localStorage.setItem('discord_user', JSON.stringify(userData));
+              localStorage.setItem('discord_user', JSON.stringify(data));
             }
             // Redirect to shop
             router.push('/sklep');
@@ -99,7 +78,7 @@ function CallbackContent() {
   );
 }
 
-export default function CallbackPage() {
+export default function RobloxCallbackPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white">

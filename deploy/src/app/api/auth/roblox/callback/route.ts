@@ -3,13 +3,8 @@ import { NextResponse } from 'next/server';
 const CLIENT_ID = '8976718339232083701';
 const CLIENT_SECRET = 'RBX-9Q7xxduyr0SyvmSDQWOIy7Hq3uol7UdKyH_ObQ5rthuf4aZnGbzdCnd_ik83XXvY';
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
+  const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-
-  // Pobieramy origin z nagłówków dla lepszej kompatybilności z proxy (np. Vercel)
-  const host = request.headers.get('host') || new URL(request.url).host;
-  const protocol = request.headers.get('x-forwarded-proto') || (new URL(request.url).protocol.replace(':', ''));
-  const origin = `${protocol}://${host}`;
 
   // Upewniamy się, że redirectUri jest identyczny z tym wysłanym z frontendu
   const redirectUri = `${origin.replace(/\/$/, "")}/robloxcallback`;

@@ -34,32 +34,31 @@ export async function POST(request: NextRequest) {
 
         // Extract metadata
         const userId = session.metadata?.userId;
-        const productType = session.metadata?.productType;
-        const productId = session.metadata?.productId;
-        const days = session.metadata?.days;
+        const regularTokens = parseInt(session.metadata?.regularTokens || '0');
+        const bonusTokens = parseInt(session.metadata?.bonusTokens || '0');
+        const vipDays = parseInt(session.metadata?.vipDays || '0');
+        const hasVip = session.metadata?.hasVip === 'true';
+        const products = session.metadata?.products?.split(',').filter(p => p) || [];
 
         console.log('Payment successful:', {
           userId,
-          productType,
-          productId,
-          days,
+          regularTokens,
+          bonusTokens,
+          vipDays,
+          hasVip,
+          products,
           amount: session.amount_total,
         });
 
-        // Here you would typically:
-        // 1. Update user's VIP status in database
-        // 2. Send confirmation email
-        // 3. Grant VIP privileges
+        if (userId) {
+          // 1. Activate VIP if needed
+          if (hasVip && vipDays > 0) {
+            console.log(`Activating VIP for user ${userId} for ${vipDays} days`);
+            // TODO: Implement VIP activation logic in database
+          }
 
-        if (productType === 'vip' && userId && days) {
-          // TODO: Implement VIP activation logic
-          console.log(`Activating VIP for user ${userId} for ${days} days`);
-        } else if (productType === 'tokens' && userId) {
-          // Add tokens to user account
-          const amount = session.metadata?.amount || session.metadata?.regularTokens;
-          const bonus = session.metadata?.bonusTokens || '0';
-
-          if (amount) {
+          // 2. Add tokens if needed
+          if (regularTokens > 0 || bonusTokens > 0) {
             try {
               const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/user/tokens`, {
                 method: 'POST',
@@ -68,19 +67,38 @@ export async function POST(request: NextRequest) {
                   userId: userId,
                   action: 'addTokens',
                   amount: {
-                    regular: parseInt(amount),
-                    bonus: parseInt(bonus)
+                    regular: regularTokens,
+                    bonus: bonusTokens
                   }
                 })
               });
 
               if (response.ok) {
-                console.log(`Added ${amount} regular + ${bonus} bonus tokens to user ${userId}`);
+                console.log(`Added ${regularTokens} regular + ${bonusTokens} bonus tokens to user ${userId}`);
               } else {
                 console.error('Failed to add tokens to user account');
               }
             } catch (error) {
               console.error('Error adding tokens:', error);
+            }
+          }
+
+          // 3. Handle products (UNBAN, etc.)
+          if (products.length > 0) {
+            console.log(`Granting products to user ${userId}:`, products);
+            try {
+              // Mark products as owned in the user data
+              await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/user/tokens`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: userId,
+                  action: 'grantProducts',
+                  products: products
+                })
+              });
+            } catch (error) {
+              console.error('Error granting products:', error);
             }
           }
         }

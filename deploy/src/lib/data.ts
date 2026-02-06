@@ -254,6 +254,30 @@ export const teams: Team[] = [
     color: '#1e40af',
     stadium: 'Stadion Miejski w Elblągu'
   },
+  {
+    id: 'CHO',
+    name: 'Chojniczanka Chojnice',
+    shortName: 'Chojniczanka',
+    logo: 'https://i.ibb.co/m5RzsvnS/obraz-2026-01-22-143945160.png',
+    color: '#dc2626',
+    stadium: 'Stadion Miejski w Chojnicach'
+  },
+  {
+    id: 'JAG',
+    name: 'Jagiellonia Białystok',
+    shortName: 'Jagiellonia',
+    logo: 'https://i.ibb.co/1JmyhfVn/obraz-2026-01-29-161936924.png',
+    color: '#facc15',
+    stadium: 'Stadion Miejski w Białymstoku'
+  },
+  {
+    id: 'WPL',
+    name: 'Wisła Płock',
+    shortName: 'Wisła Płock',
+    logo: 'https://i.ibb.co/SX6LkvnR/obraz-2026-02-01-105518416.png',
+    color: '#1e40af',
+    stadium: 'Stadion im. Kazimierza Górskiego'
+  },
 ];
 
 export const extraTeams: Team[] = [
@@ -442,6 +466,9 @@ export const standings: Standing[] = [
   { position: 11, team: teams[8], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
   { position: 12, team: teams[2], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
   { position: 13, team: teams[7], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
+  { position: 14, team: teams[13], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
+  { position: 15, team: teams[14], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
+  { position: 16, team: teams[15], played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 },
 ];
 
 export const topScorers: Player[] = [];

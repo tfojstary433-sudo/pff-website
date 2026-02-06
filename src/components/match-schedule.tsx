@@ -93,7 +93,7 @@ function MatchCard({ match, isLive = false, isFinished = false, liveData, finish
   return (
     <div className="mb-6 relative group max-w-5xl mx-auto">
       <Link href={`/mecz/${match.id || match.uuid}`}>
-        <div className="relative overflow-hidden bg-[#070707] rounded-[2rem] border border-white/5 transition-all duration-500 hover:border-white/10 hover:shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <div className="relative overflow-hidden bg-black/40 backdrop-blur-xl rounded-[2rem] border border-white/5 transition-all duration-500 hover:border-white/10 hover:shadow-[0_0_50px_rgba(0,0,0,0.2)]">
           {/* Dynamic Background Gradients */}
           <div 
             className="absolute inset-0 opacity-10 pointer-events-none transition-opacity duration-500 group-hover:opacity-20"
@@ -109,14 +109,14 @@ function MatchCard({ match, isLive = false, isFinished = false, liveData, finish
             {/* Home Team */}
             <div className="flex items-center gap-4 md:gap-8 flex-1 justify-end group/team">
               <div className="flex flex-col items-end">
-                <span className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter text-right group-hover/team:text-blue-400 transition-colors leading-none">
+                <span className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter text-right group-hover/team:text-white transition-colors leading-none italic">
                   {match.homeTeam.name}
                 </span>
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mt-2 opacity-50">Gospodarz</span>
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mt-2">Gospodarz</span>
               </div>
               <div className="relative shrink-0">
                 <div 
-                  className="absolute inset-0 blur-[30px] opacity-20 rounded-full transition-all duration-500 group-hover:opacity-40"
+                  className="absolute inset-0 blur-[30px] opacity-10 rounded-full transition-all duration-500 group-hover:opacity-30"
                   style={{ backgroundColor: match.homeTeam.color }}
                 />
                 <Image 
@@ -132,7 +132,7 @@ function MatchCard({ match, isLive = false, isFinished = false, liveData, finish
             {/* Score/Time Box */}
             <div className="flex flex-col items-center gap-3 min-w-[120px] md:min-w-[160px] z-20">
               <div className="relative">
-                <div className="bg-[#0f0f0f] border border-white/10 px-8 py-4 md:px-10 md:py-5 rounded-[1.5rem] shadow-2xl transition-all duration-500 group-hover:border-white/20 relative">
+                <div className="bg-black/20 backdrop-blur-md border border-white/10 px-8 py-4 md:px-10 md:py-5 rounded-[1.5rem] shadow-xl transition-all duration-500 group-hover:border-white/20 relative">
                   {isFinished ? (
                     <div className="flex flex-col items-center">
                       <span className="text-3xl md:text-4xl font-black text-white tracking-tighter tabular-nums">
@@ -156,13 +156,13 @@ function MatchCard({ match, isLive = false, isFinished = false, liveData, finish
               
               <div className="flex items-center gap-6">
                 <div className="flex flex-col items-center">
-                  <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-1">Poz.</span>
-                  <span className="text-base md:text-lg font-black text-[#00ccff] tracking-tighter">#{homePos}</span>
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Poz.</span>
+                  <span className="text-base md:text-lg font-black text-white tracking-tighter">#{homePos}</span>
                 </div>
                 <div className="w-px h-6 bg-white/10"></div>
                 <div className="flex flex-col items-center">
-                  <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-1">Poz.</span>
-                  <span className="text-base md:text-lg font-black text-[#00ccff] tracking-tighter">#{awayPos}</span>
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Poz.</span>
+                  <span className="text-base md:text-lg font-black text-white tracking-tighter">#{awayPos}</span>
                 </div>
               </div>
               
@@ -178,7 +178,7 @@ function MatchCard({ match, isLive = false, isFinished = false, liveData, finish
             <div className="flex items-center gap-4 md:gap-8 flex-1 justify-start group/team">
               <div className="relative shrink-0">
                 <div 
-                  className="absolute inset-0 blur-[30px] opacity-20 rounded-full transition-all duration-500 group-hover:opacity-40"
+                  className="absolute inset-0 blur-[30px] opacity-10 rounded-full transition-all duration-500 group-hover:opacity-30"
                   style={{ backgroundColor: match.awayTeam.color }}
                 />
                 <Image 
@@ -190,24 +190,24 @@ function MatchCard({ match, isLive = false, isFinished = false, liveData, finish
                 />
               </div>
               <div className="flex flex-col items-start">
-                <span className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter group-hover/team:text-blue-400 transition-colors leading-none">
+                <span className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter group-hover/team:text-white transition-colors leading-none italic">
                   {match.awayTeam.name}
                 </span>
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mt-2 opacity-50">Gość</span>
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mt-2">Gość</span>
               </div>
             </div>
           </div>
           
           {/* Bottom Nav Bar */}
-          <div className="h-12 bg-black/40 border-t border-white/5 flex items-center justify-center relative group-hover:bg-white/[0.02] transition-colors">
+          <div className="h-12 bg-black/20 border-t border-white/5 flex items-center justify-center relative group-hover:bg-white/[0.05] transition-colors">
             <div className="flex items-center gap-4 md:gap-8">
-              <span className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase hover:text-white transition-colors cursor-pointer">Centrum Meczowe</span>
+              <span className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase hover:text-white transition-colors cursor-pointer">Centrum Meczowe</span>
               <span className="w-1 h-1 bg-white/10 rounded-full" />
-              <span className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase hover:text-white transition-colors cursor-pointer">Statystyki</span>
+              <span className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase hover:text-white transition-colors cursor-pointer">Statystyki</span>
               <span className="w-1 h-1 bg-white/10 rounded-full" />
-              <span className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase hover:text-white transition-colors cursor-pointer">Składy</span>
+              <span className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase hover:text-white transition-colors cursor-pointer">Składy</span>
             </div>
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[1px] bg-blue-500/50 transition-all duration-700 w-0 group-hover:w-1/2 blur-sm" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[1px] bg-white/20 transition-all duration-700 w-0 group-hover:w-1/2 blur-sm" />
           </div>
         </div>
       </Link>
@@ -292,7 +292,7 @@ export function MatchSchedule({ isInTab = false }: { isInTab?: boolean } = {}) {
           if (Array.isArray(fixturesData) && fixturesData.length > 0) {
             // Map API data to expected format
             const mappedFixtures = fixturesData.map((fixture: any) => ({
-              id: fixture.id.toString(),
+              id: (fixture.matchUuid || fixture.uuid || fixture.id).toString(),
               round: fixture.round,
               date: fixture.date,
               homeTeam: getTeamFromName(fixture.homeTeam || fixture.teamA),

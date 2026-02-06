@@ -3,9 +3,9 @@ import Link from 'next/link';
 
 export function Footer() {
   return (
-    <footer className="bg-gradient-to-b from-[#001a4d] to-[#000a2d] text-white font-sans">
+    <footer className="bg-transparent text-white font-sans">
       {/* Sponsors Bar */}
-      <div className="bg-black/40 py-3 overflow-hidden w-full border-t border-white/5">
+      <div className="bg-transparent py-3 overflow-hidden w-full border-t border-white/5">
         <div className="flex gap-6 items-center whitespace-nowrap animate-scroll" style={{ width: 'max-content' }}>
           {[...Array(8)].map((_, group) => (
             <div key={group} className="flex gap-6 items-center flex-shrink-0">
@@ -18,7 +18,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="py-12 relative">
+      <div className="py-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
             backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 50px, rgba(255,255,255,0.02) 50px, rgba(255,255,255,0.02) 100px)`
@@ -26,18 +26,19 @@ export function Footer() {
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
             {/* Logo */}
-            <div className="flex flex-col gap-4">
-              <Image
-                src="https://i.ibb.co/MyfXtGLH/ekstraklasabaner-removebg-preview.png"
-                alt="Ekstraklasa"
-                width={150}
-                height={40}
-                className="brightness-0 invert"
-                suppressHydrationWarning={true}
-              />
-              <p className="text-gray-400 text-xs leading-relaxed">
+            <div className="flex flex-col gap-6">
+              <div className="h-10 relative w-48">
+                <Image
+                  src="https://i.ibb.co/MyfXtGLH/ekstraklasabaner-removebg-preview.png"
+                  alt="Ekstraklasa"
+                  fill
+                  className="brightness-0 invert object-contain object-left"
+                  suppressHydrationWarning={true}
+                />
+              </div>
+              <p className="text-gray-400 text-xs leading-relaxed max-w-[200px]">
                 Oficjalna strona Polskiej Federacji Futbolu Ekstraklasa
               </p>
             </div>
@@ -46,7 +47,7 @@ export function Footer() {
             <div>
               <h3 className="font-black text-sm mb-4 text-blue-400 uppercase tracking-wider">Mapa Strony</h3>
               <ul className="space-y-2.5 text-sm">
-                <li><Link href="/" className="text-gray-300 hover:text-white transition-colors flex items-center gap-2">
+                <li><Link href="/aktualnosci" className="text-gray-300 hover:text-white transition-colors flex items-center gap-2">
                   <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>Aktualności
                 </Link></li>
                 <li><Link href="/terminarz" className="text-gray-300 hover:text-white transition-colors flex items-center gap-2">

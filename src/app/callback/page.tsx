@@ -11,9 +11,12 @@ export default function CallbackPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    const state = urlParams.get('state');
 
     if (code) {
-      fetch(`/api/auth/callback?code=${code}`)
+      const isDiscord = state === 'discord' || state?.startsWith('discord:');
+      const apiPath = isDiscord ? '/api/auth/callback' : '/api/auth/roblox/callback';
+      fetch(`${apiPath}?code=${code}&state=${state || ''}`)
         .then((res) => res.json())
         .then((data) => {
           // Remove code from URL to prevent reuse on refresh
@@ -23,9 +26,45 @@ export default function CallbackPage() {
             setError(data.error);
           } else {
             // Save user info to localStorage
-            const savedRobloxId = localStorage.getItem('roblox_id');
-            const userData = { ...data, robloxId: savedRobloxId || null };
-            localStorage.setItem('discord_user', JSON.stringify(userData));
+            if (!isDiscord) {
+              // Format data for Roblox user
+              const userData = {
+                id: data.robloxId,
+                username: data.robloxUsername,
+                global_name: data.robloxUsername,
+                robloxId: data.robloxId,
+                robloxUsername: data.robloxUsername,
+                avatar: null // Will be handled by RobloxAvatar component
+              };
+              localStorage.setItem('discord_user', JSON.stringify(userData));
+            } else {
+              const existingUserStr = localStorage.getItem('discord_user');
+              let userData;
+              if (existingUserStr) {
+                const existingUser = JSON.parse(existingUserStr);
+                userData = {
+                  ...existingUser,
+                  discordId: data.id,
+                  discordUsername: data.username,
+                  discordAvatar: data.avatar,
+                  discordRoles: data.discordRoles || [],
+                  discordRoleNames: data.discordRoleNames || {},
+                  email: data.email || existingUser.email,
+                  robloxId: data.robloxId || existingUser.robloxId
+                };
+              } else {
+                userData = {
+                  ...data,
+                  discordId: data.id,
+                  discordUsername: data.username,
+                  discordAvatar: data.avatar,
+                  discordRoles: data.discordRoles || [],
+                  discordRoleNames: data.discordRoleNames || {},
+                  robloxId: data.robloxId
+                };
+              }
+              localStorage.setItem('discord_user', JSON.stringify(userData));
+            }
 
             // Start 5-second countdown before redirect
             setCountdown(5);
@@ -79,7 +118,7 @@ export default function CallbackPage() {
             {countdown !== null ? `Przekierowanie za ${countdown}s` : 'Autoryzacja...'}
           </h1>
           <p className="text-white/40 font-medium">
-            {countdown !== null ? 'Pomyślnie zalogowano!' : 'Proszę czekać, łączymy z Discordem'}
+            {countdown !== null ? 'Pomyślnie zalogowano!' : 'Proszę czekać, łączymy z Roblox'}
           </p>
         </div>
       </div>

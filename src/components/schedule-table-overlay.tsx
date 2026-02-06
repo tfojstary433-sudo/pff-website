@@ -234,7 +234,7 @@ export function ScheduleTableOverlay({
       {/* Toggle Button */}
       <button
         onClick={() => setIsMinimized(!isMinimized)}
-        className="absolute left-[-48px] top-0 w-12 h-12 bg-black/80 backdrop-blur-xl text-[#00ccff] flex items-center justify-center rounded-l-2xl shadow-2xl hover:bg-black transition-all border-y border-l border-white/10 group"
+        className="absolute left-[-48px] top-0 w-12 h-12 bg-transparent text-white/60 flex items-center justify-center rounded-l-2xl shadow-2xl hover:bg-white/5 transition-all border-y border-l border-white/10 group"
         title={isMinimized ? "Rozwiń" : "Zminimalizuj"}
         suppressHydrationWarning={true}
       >
@@ -243,13 +243,12 @@ export function ScheduleTableOverlay({
         ) : (
           <Minimize2 size={20} className="group-hover:scale-110 transition-transform" />
         )}
-        <div className="absolute inset-0 bg-[#00ccff]/5 opacity-0 group-hover:opacity-100 rounded-l-2xl transition-opacity" />
+        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 rounded-l-2xl transition-opacity" />
       </button>
 
       {/* Tab headers */}
-      <div className="flex gap-1 p-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded-t-2xl shadow-2xl relative overflow-hidden">
-        {/* Background glow for the whole tab bar */}
-        <div className="absolute top-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-[#00ccff] to-transparent opacity-50" />
+      <div className="flex gap-1 p-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-t-2xl shadow-2xl relative overflow-hidden">
+        {/* Background glow removed */}
         
         <button
           onClick={() => setActiveTab('terminarz')}
@@ -260,7 +259,7 @@ export function ScheduleTableOverlay({
           }`}
         >
           {activeTab === 'terminarz' && (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00ccff] to-[#0066ff] rounded-xl -z-10 shadow-[0_0_20px_rgba(0,204,255,0.3)]" />
+            <div className="absolute inset-0 bg-white/10 rounded-xl -z-10 shadow-[0_0_20px_rgba(255,255,255,0.05)]" />
           )}
           TERMINARZ
         </button>
@@ -273,7 +272,7 @@ export function ScheduleTableOverlay({
           }`}
         >
           {activeTab === 'tabela' && (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00ccff] to-[#0066ff] rounded-xl -z-10 shadow-[0_0_20px_rgba(0,204,255,0.3)]" />
+            <div className="absolute inset-0 bg-white/10 rounded-xl -z-10 shadow-[0_0_20px_rgba(255,255,255,0.05)]" />
           )}
           TABELA
         </button>
@@ -286,7 +285,7 @@ export function ScheduleTableOverlay({
           }`}
         >
           {activeTab === 'live' && (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00ccff] to-[#0066ff] rounded-xl -z-10 shadow-[0_0_20px_rgba(0,204,255,0.3)]" />
+            <div className="absolute inset-0 bg-white/10 rounded-xl -z-10 shadow-[0_0_20px_rgba(255,255,255,0.05)]" />
           )}
           <span className="flex items-center justify-center gap-1.5">
             NA ŻYWO
@@ -298,10 +297,10 @@ export function ScheduleTableOverlay({
       </div>
 
       {/* Tab content container */}
-      <div className="border-x border-b border-white/10 shadow-2xl rounded-b-2xl overflow-hidden glass">
+      <div className="border-x border-b border-white/10 shadow-2xl rounded-b-2xl overflow-hidden bg-black/20 backdrop-blur-md">
         {activeTab === 'live' && (
-          <div className="bg-[#0a0a0a]/90 text-white min-h-[200px] max-h-[600px] overflow-y-auto scrollbar-hide">
-            <div className="bg-gradient-to-r from-[#1a1a1a] via-[#2a2a2a] to-[#1a1a1a] px-4 py-3 font-black text-[11px] tracking-widest text-center sticky top-0 z-10 border-b border-white/5 flex items-center justify-center gap-3">
+          <div className="bg-transparent text-white min-h-[200px] max-h-[600px] overflow-y-auto scrollbar-hide">
+            <div className="bg-black/40 backdrop-blur-md px-4 py-3 font-black text-[11px] tracking-widest text-center sticky top-0 z-10 border-b border-white/10 flex items-center justify-center gap-3">
               <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
               AKTUALNIE NA ŻYWO
               <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
@@ -310,7 +309,7 @@ export function ScheduleTableOverlay({
             {loadingLive && liveMatches.length === 0 ? (
               <div className="py-10 text-center text-gray-400 text-sm">Ładowanie...</div>
             ) : liveMatches.length > 0 ? (
-              <div className="divide-y divide-gray-700">
+              <div className="divide-y divide-white/5">
                 {liveMatches.map((match) => {
                   const matchData = fixtures.find(m =>
                     (m.homeTeam?.shortName === match.homeTeam.shortName) &&
@@ -321,23 +320,15 @@ export function ScheduleTableOverlay({
                   
                   return (
                     <Link href={`/mecz/${match.id}`} key={match.id} className="block">
-                      <div className="px-4 py-2 bg-red-600 text-white text-[10px] font-semibold flex justify-between items-center">
+                      <div className="px-4 py-2 bg-black/20 text-white text-[10px] font-semibold flex justify-between items-center border-b border-white/5">
                         <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
                           LIVE
                         </span>
-                        <span className="text-green-300 font-bold">{match.timer}</span>
+                        <span className="text-white font-bold opacity-80">{match.timer}</span>
                       </div>
                       <div 
-                        className="relative px-4 py-6 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 hover:from-gray-800 hover:via-gray-700 hover:to-gray-800 transition-all cursor-pointer"
-                        style={{
-                          background: `linear-gradient(to right, 
-                            ${matchData?.homeTeam.color || '#1f2937'}22 0%, 
-                            #1f2937 30%,
-                            #1f2937 70%,
-                            ${matchData?.awayTeam.color || '#1f2937'}22 100%
-                          )`
-                        }}
+                        className="relative px-4 py-6 hover:bg-white/5 transition-all cursor-pointer"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex flex-col items-center gap-1 flex-1">
@@ -359,7 +350,7 @@ export function ScheduleTableOverlay({
                           </div>
                           
                           <div className="flex flex-col items-center gap-1">
-                            <div className="bg-black/40 backdrop-blur-sm border border-white/10 px-3 py-2 rounded-lg">
+                            <div className="bg-transparent backdrop-blur-sm border border-white/10 px-3 py-2 rounded-lg">
                               <span className="text-xl font-black text-white">{match.homeTeam.score} : {match.awayTeam.score}</span>
                             </div>
                             <div className="text-red-500 text-[9px] font-bold animate-pulse">LIVE</div>
@@ -403,66 +394,51 @@ export function ScheduleTableOverlay({
       )}
 
       {activeTab === 'terminarz' && (
-        <div className="bg-[#0a0a0a]/90 text-white max-h-[600px] overflow-y-auto scrollbar-hide">
+        <div className="bg-transparent text-white max-h-[600px] overflow-y-auto scrollbar-hide">
           {/* Round selector */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-[#1a1a1a] to-[#0a0a0a] px-4 py-4 sticky top-0 z-10 border-b border-white/5">
+          <div className="flex items-center justify-between bg-black/20 backdrop-blur-md px-4 py-4 sticky top-0 z-10 border-b border-white/10">
             <button
               onClick={() => setRoundIndex(Math.max(0, roundIndex - 1))}
               disabled={roundIndex === 0}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-[#00ccff]/20 hover:text-[#00ccff] disabled:opacity-20 transition-all border border-white/10"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-white/10 disabled:opacity-20 transition-all border border-white/10"
             >
               ←
             </button>
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-black text-[#00ccff] tracking-[0.2em] mb-0.5 uppercase">EKSTRAKLASA</span>
+              <span className="text-[10px] font-black text-white/40 tracking-[0.2em] mb-0.5 uppercase">EKSTRAKLASA</span>
               <span className="font-black text-lg tracking-tighter">{currentRound}. KOLEJKA</span>
             </div>
             <button
               onClick={() => setRoundIndex(Math.min(allRounds.length - 1, roundIndex + 1))}
               disabled={roundIndex === allRounds.length - 1}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-[#00ccff]/20 hover:text-[#00ccff] disabled:opacity-20 transition-all border border-white/10"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-white/10 disabled:opacity-20 transition-all border border-white/10"
             >
               →
             </button>
           </div>
 
           {/* Matches */}
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-white/5 bg-transparent">
             {roundMatches.map((match, index) => {
               const homePos = standings.find(s => s.team?.id === match.homeTeam?.id)?.position || '-';
               const awayPos = standings.find(s => s.team?.id === match.awayTeam?.id)?.position || '-';
 
               return (
                 <Link href={`/mecz/${match.id || index}`} key={match.id || index} className="block group">
-                  <div className="px-4 py-2 bg-black/40 text-gray-400 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
-                    <div className="w-1 h-1 bg-[#00ccff] rounded-full" />
+                  <div className="px-4 py-2 bg-black/10 text-gray-400 text-[9px] font-black tracking-widest uppercase flex items-center gap-2 border-b border-white/5">
+                    <div className="w-1 h-1 bg-white/40 rounded-full" />
                     {match.date ? formatDate(match.date) + ' • ' + formatTime(match.date) : 'Data nieznana'}
                   </div>
                   <div 
-                    className="relative px-4 py-6 bg-gradient-to-br from-transparent to-black/40 hover:from-white/5 hover:to-white/10 transition-all cursor-pointer"
+                    className="relative px-4 py-6 bg-transparent hover:bg-white/5 transition-all cursor-pointer"
                   >
-                    {/* Gradient overlays */}
-                    <div
-                      className="absolute left-0 top-0 bottom-0 w-20 opacity-10 group-hover:opacity-20 transition-opacity"
-                      style={{
-                        background: `linear-gradient(to right, ${match.homeTeam?.color || '#1f2937'}, transparent)`
-                      }}
-                    />
-                    <div
-                      className="absolute right-0 top-0 bottom-0 w-20 opacity-10 group-hover:opacity-20 transition-opacity"
-                      style={{
-                        background: `linear-gradient(to left, ${match.awayTeam?.color || '#1f2937'}, transparent)`
-                      }}
-                    />
-
+                    {/* Gradient overlays removed */}
+                    
                     <div className="relative z-10 flex items-center justify-between gap-2">
                       {/* Home Team */}
                       <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                         <div className="relative">
-                          <div
-                            className="absolute inset-0 blur-lg opacity-30"
-                            style={{ backgroundColor: match.homeTeam?.color || '#1f2937' }}
-                          />
+                          {/* No background glow */}
                           <Image
                             src={match.homeTeam?.logo || '/default-logo.png'}
                             alt={match.homeTeam?.name || 'Home Team'}
@@ -479,7 +455,7 @@ export function ScheduleTableOverlay({
                       
                       {/* Time/Score */}
                       <div className="flex flex-col items-center gap-1 px-3">
-                        <div className="bg-gradient-to-br from-gray-800 to-black border border-white/10 px-3 py-1.5 rounded-lg shadow-xl">
+                        <div className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
                           {finishedMatches[match.id || index] ? (
                             <span className="text-base font-black text-green-400 tracking-tight">
                               {finishedMatches[match.id || index].homeScore}:{finishedMatches[match.id || index].awayScore}
@@ -496,11 +472,11 @@ export function ScheduleTableOverlay({
                           {(finishedMatches[match.id || index] || match.status === 'finished') ? (
                             <span className="text-[8px] font-black text-green-400 uppercase">ZAKOŃCZONY</span>
                           ) : (
-                            <span className="text-[8px] font-black text-[#00ccff] italic uppercase">{match.stadium ? match.stadium.split(' ')[0] + ' ' + (match.stadium.split(' ')[1] || '') + '...' : 'Stadion'}</span>
+                            <span className="text-[8px] font-black text-white/40 italic uppercase">{match.stadium ? match.stadium.split(' ')[0] + ' ' + (match.stadium.split(' ')[1] || '') + '...' : 'Stadion'}</span>
                           )}
                           <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-600">
                             <span>#{homePos}</span>
-                            <span className="text-blue-500">vs</span>
+                            <span className="text-white/20">vs</span>
                             <span>#{awayPos}</span>
                           </div>
                         </div>
@@ -509,10 +485,7 @@ export function ScheduleTableOverlay({
                       {/* Away Team */}
                       <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                         <div className="relative">
-                          <div
-                            className="absolute inset-0 blur-lg opacity-30"
-                            style={{ backgroundColor: match.awayTeam?.color || '#1f2937' }}
-                          />
+                          {/* No background glow */}
                           <Image
                             src={match.awayTeam?.logo || '/default-logo.png'}
                             alt={match.awayTeam?.name || 'Away Team'}
@@ -529,8 +502,8 @@ export function ScheduleTableOverlay({
                     </div>
                     
                     {/* Category Banner */}
-                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-[#00ccff]/10 rounded-full border border-[#00ccff]/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[7px] font-black text-[#00ccff] tracking-widest uppercase">{match.category || 'Mecz'}</span>
+                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-white/10 rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[7px] font-black text-white/60 tracking-widest uppercase">{match.category || 'Mecz'}</span>
                     </div>
                   </div>
                 </Link>
@@ -541,7 +514,7 @@ export function ScheduleTableOverlay({
       )}
 
       {activeTab === 'tabela' && (
-        <div className="bg-[#0a0a0a]/90 text-white max-h-[600px] overflow-y-auto scrollbar-hide">
+        <div className="bg-transparent text-white max-h-[600px] overflow-y-auto scrollbar-hide">
           <LeagueTable isInTab={true} compact={true} />
         </div>
       )}

@@ -1,6 +1,6 @@
 local HttpService = game:GetService("HttpService")
 
-local BACKEND_URL = "https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev"
+local BACKEND_URL = "https://88602c77-02c7-4b06-8b56-454baca5488c-00-38bejx2g3vlpx.picard.replit.dev"
 
 local sm = game.ReplicatedStorage.Events.StartMatch
 local em = game.ReplicatedStorage.Events.EndMatch

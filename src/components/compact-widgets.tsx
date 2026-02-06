@@ -20,12 +20,12 @@ export function CompactLeagueTable({ setActiveTab, setIsMinimized }: WidgetProps
   };
 
   return (
-    <div className="bg-[#0a0a0a]/80 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-      <div className="bg-gradient-to-r from-[#003087] to-[#001a4d] px-4 py-3 border-b border-white/10 flex justify-between items-center">
+    <div className="bg-transparent rounded-2xl border border-white/10 overflow-hidden">
+      <div className="bg-transparent px-4 py-3 border-b border-white/10 flex justify-between items-center">
         <h3 className="text-sm font-black text-white uppercase tracking-wider">Tabela Ligowa</h3>
         <button 
           onClick={handleFullTable}
-          className="text-[10px] font-bold text-[#00ccff] hover:text-white transition-colors uppercase"
+          className="text-[10px] font-bold text-white/60 hover:text-white transition-colors uppercase"
         >
           Pełna →
         </button>
@@ -47,8 +47,8 @@ export function CompactLeagueTable({ setActiveTab, setIsMinimized }: WidgetProps
             {standing.team && (
               <>
                 <Image src={standing.team.logo} alt={standing.team.name} width={24} height={24} className="shrink-0" />
-                <span className="flex-1 text-xs font-bold text-white uppercase truncate group-hover:text-[#00ccff] transition-colors">{standing.team.shortName}</span>
-                <span className="text-xs font-black text-white bg-white/10 px-2 py-0.5 rounded-md group-hover:bg-[#00ccff]/20 transition-colors">{standing.points}</span>
+                <span className="flex-1 text-xs font-bold text-white uppercase truncate group-hover:text-white transition-colors">{standing.team.shortName}</span>
+                <span className="text-xs font-black text-white bg-white/10 px-2 py-0.5 rounded-md group-hover:bg-white/20 transition-colors">{standing.points}</span>
               </>
             )}
           </Link>

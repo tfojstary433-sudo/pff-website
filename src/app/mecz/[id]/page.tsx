@@ -500,8 +500,9 @@ export default function MatchDetail() {
       if (stored) {
         const finished = JSON.parse(stored);
         setFinishedMatches(finished);
-        setIsMatchFinished(finished[id] || match?.status === 'finished' || false);
-        setIsMatchActive(false);
+        const status = apiData?.match?.status?.toLowerCase();
+        setIsMatchFinished(finished[id] || match?.status === 'finished' || status === 'finished' || status === 'played' || status === 'ft' || false);
+        setIsMatchActive(apiData?.match?.isActive || status === 'active' || status === 'live' || false);
 
         // Load match result data for finished matches
         if (finished[id] || match?.status === 'finished') {
@@ -524,7 +525,55 @@ export default function MatchDetail() {
       try {
         let loaded = false;
 
-        // 1) If URL id is UUID, try Replit first
+        // Parallel fetch for initial data to speed up
+        const [tournamentRes, scheduleRes] = await Promise.all([
+          fetch(`${REPLIT_API_BASE_URL}/api/tournament/1.json`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' }).catch(() => null),
+          fetch(API_ENDPOINTS.SCHEDULE, { headers: { 'Accept': 'application/json' }, cache: 'no-store' }).catch(() => null)
+        ]);
+
+        if (tournamentRes && tournamentRes.ok) {
+          const data = await tournamentRes.json();
+          const fixtures = data.fixtures || [];
+          
+          // Prioritize matchUuid for precise matching
+          let found = fixtures.find((m: any) => m.matchUuid === id || m.uuid === id);
+          
+          // Fallback to id only if no uuid match found
+          if (!found && isNumeric(id)) {
+            found = fixtures.find((m: any) => m.id?.toString() === id);
+          }
+          
+          if (found) {
+            setPreMatchInfo({
+              ...found,
+              homeTeam: found.teamA?.name ? found.teamA : { name: found.teamA },
+              awayTeam: found.teamB?.name ? found.teamB : { name: found.teamB },
+              homeScore: found.scoreA,
+              awayScore: found.scoreB,
+              stadium: found.stadium || 'Ośrodek Treningowy PFF',
+              category: 'MECZE TOWARZYSKIE'
+            });
+          }
+        }
+
+        if (scheduleRes && scheduleRes.ok && !preMatchInfo) {
+          const data = await scheduleRes.json();
+          const list = Array.isArray(data) ? data : (Array.isArray(data?.fixtures) ? data.fixtures : (Array.isArray(data?.matches) ? data.matches : []));
+          
+          // Prioritize matchUuid
+          let found = list.find((m: any) => m.matchUuid === id || m.uuid === id);
+          
+          // Fallback to id only if no uuid match found
+          if (!found && isNumeric(id)) {
+            found = list.find((m: any) => m.id?.toString() === id);
+          }
+          
+          if (found) {
+            setPreMatchInfo(found);
+          }
+        }
+
+        // Try Replit details
         if (isUuid(id)) {
           try {
             const replitRes = await fetch(`${REPLIT_API_BASE_URL}/api/matches/${id}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
@@ -536,36 +585,75 @@ export default function MatchDetail() {
           } catch {}
         }
 
-        // 2) Fallback to local API if not loaded (e.g., non-UUID route or Replit unavailable)
+        // Local API / Firebase fallback
         if (!loaded) {
           try {
             const response = await fetch(`/api/matches/${id}`, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
             if (response.ok) {
               const data = await response.json();
-              setApiData(data);
-              loaded = true;
-            }
-          } catch {}
-        }
-
-        // 3) Try to fetch from schedule if still not loaded (it might be a scheduled match)
-        if (!loaded) {
-          try {
-            const res = await fetch(API_ENDPOINTS.SCHEDULE, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
-            if (res.ok) {
-              const data = await res.json();
-              const list = Array.isArray(data) ? data : (Array.isArray(data?.fixtures) ? data.fixtures : (Array.isArray(data?.matches) ? data.matches : []));
-              const found = list.find((m: any) => m.matchUuid === id || m.id?.toString() === id);
-              if (found) {
-                setPreMatchInfo(found);
+              
+              // Team validation
+              if (preMatchInfo) {
+                const apiHome = (data.match?.teamA || '').toLowerCase();
+                const preHome = (preMatchInfo.homeTeam?.name || preMatchInfo.teamA || '').toLowerCase();
+                
+                if (preHome && apiHome && !apiHome.includes(preHome.split(' ')[0]) && !preHome.includes(apiHome.split(' ')[0])) {
+                  console.log('Skipping mismatched live data');
+                } else {
+                  setApiData(data);
+                  loaded = true;
+                }
+              } else {
+                setApiData(data);
                 loaded = true;
               }
             }
           } catch {}
         }
 
-        if (!loaded && !match) {
-          throw new Error('Nie udało się znaleźć danych tego meczu');
+        // Try players-history.json as a definitive score source for finished matches
+        try {
+          const historyRes = await fetch('https://88602c77-02c7-4b06-8b56-454baca5488c-00-38bejx2g3vlpx.picard.replit.dev/players-history.json', { cache: 'no-store' });
+          if (historyRes.ok) {
+            const historyData = await historyRes.json();
+            if (historyData.players) {
+              let historyMatch = null;
+              for (const p of Object.values(historyData.players) as any[]) {
+                const m = p.matches?.find((match: any) => match.matchUuid === id || match.id?.toString() === id);
+                if (m) {
+                  historyMatch = m;
+                  break;
+                }
+              }
+
+              if (historyMatch) {
+                // If we found it in history, it means it's finished and we have scores
+                const hScoreA = historyMatch.scoreA;
+                const hScoreB = historyMatch.scoreB;
+
+                setPreMatchInfo((prev: any) => ({
+                  ...(prev || {}),
+                  scoreA: hScoreA,
+                  scoreB: hScoreB,
+                  homeScore: hScoreA,
+                  awayScore: hScoreB,
+                  status: 'finished',
+                  teamA: historyMatch.teamA,
+                  teamB: historyMatch.teamB
+                }));
+                
+                if (!loaded) {
+                  setIsMatchFinished(true);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error('History score fetch failed:', e);
+        }
+
+        if (!loaded && !preMatchInfo && !match) {
+          throw new Error('Nie udało się znaleźć danych meczu');
         }
       } catch (err: any) {
         console.error('Error fetching match data:', err);
@@ -586,20 +674,39 @@ export default function MatchDetail() {
   }, [id, isMatchActive, match]);
 
   useEffect(() => {
-    if (apiData) {
-      const now = new Date();
-      const matchDate = match?.date ? new Date(match.date) : now;
-      const isPast = matchDate < now;
-
-      if (isPast) {
-        setIsMatchFinished(apiData.match.status !== 'active');
-        setIsMatchActive(apiData.match.status === 'active');
-      } else {
-        setIsMatchFinished(match?.status === 'finished' || false);
-        setIsMatchActive(false);
+    if (preMatchInfo) {
+      const matchDate = new Date(preMatchInfo.date).getTime();
+      const now = new Date().getTime();
+      const isPast = matchDate < now - (2 * 60 * 60 * 1000); // More than 2 hours ago
+      const status = preMatchInfo.status?.toLowerCase();
+      const hasStatusFinished = status === 'finished' || status === 'ft' || status === 'played';
+      
+      const isActive = preMatchInfo.isActive || status === 'active' || status === 'live' || status === 'in_progress';
+      if (isActive && !isMatchActive) {
+        setIsMatchActive(true);
+      }
+      
+      // If we have scores and it's not active, it's likely finished or has a result to show
+      const hasScore = (preMatchInfo.scoreA !== undefined && preMatchInfo.scoreA !== null && (preMatchInfo.scoreA > 0 || (preMatchInfo.scoreB !== undefined && preMatchInfo.scoreB > 0)));
+      
+      if ((hasStatusFinished || isPast || (hasScore && isPast)) && !isMatchActive) {
+        setIsMatchFinished(true);
       }
     }
-  }, [apiData, match]);
+  }, [preMatchInfo, isMatchActive]);
+
+  useEffect(() => {
+    if (apiData) {
+      const status = apiData.match?.status?.toLowerCase();
+      const isActive = apiData.match?.isActive || status === 'active' || status === 'live';
+      const isFinished = status === 'finished' || status === 'played' || status === 'ft';
+
+      setIsMatchActive(isActive);
+      if (isFinished) {
+        setIsMatchFinished(true);
+      }
+    }
+  }, [apiData]);
 
   useEffect(() => {
     if (isMatchFinished && !hasAutoSwitched.current) {
@@ -612,8 +719,9 @@ export default function MatchDetail() {
   }, [isMatchFinished, isMatchActive]);
 
   useEffect(() => {
+    // Don't run if match is active/finished or if we already have preMatchInfo from ID matching
     const isPre = !isMatchActive && !isMatchFinished;
-    if (!isPre) return;
+    if (!isPre || (preMatchInfo && (preMatchInfo.matchUuid === id || preMatchInfo.id?.toString() === id))) return;
 
     const fetchSchedule = async () => {
       try {
@@ -747,8 +855,12 @@ export default function MatchDetail() {
     ? apiData.events
     : (finishedMatchData?.scorers ? buildEventsFromFinished(finishedMatchData.scorers) : null);
 
-  const scoreA = finishedMatchData ? finishedMatchData.homeScore : (apiData ? (calculatedScore?.scoreA ?? apiData.match.scoreA) : preMatchInfo?.scoreA ?? preMatchInfo?.homeScore ?? match?.homeScore ?? 0);
-  const scoreB = finishedMatchData ? finishedMatchData.awayScore : (apiData ? (calculatedScore?.scoreB ?? apiData.match.scoreB) : preMatchInfo?.scoreB ?? preMatchInfo?.awayScore ?? match?.awayScore ?? 0);
+  const scoreA = (isMatchFinished && preMatchInfo?.scoreA !== undefined) 
+    ? preMatchInfo.scoreA 
+    : (apiData?.match ? (calculatedScore?.scoreA ?? apiData.match.scoreA) : (finishedMatchData?.homeScore ?? preMatchInfo?.scoreA ?? preMatchInfo?.homeScore ?? match?.homeScore ?? 0));
+  const scoreB = (isMatchFinished && preMatchInfo?.scoreB !== undefined)
+    ? preMatchInfo.scoreB
+    : (apiData?.match ? (calculatedScore?.scoreB ?? apiData.match.scoreB) : (finishedMatchData?.awayScore ?? preMatchInfo?.scoreB ?? preMatchInfo?.awayScore ?? match?.awayScore ?? 0));
 
   const hasScore = scoreA > 0 || scoreB > 0 || isMatchActive || isMatchFinished;
 
@@ -817,31 +929,21 @@ export default function MatchDetail() {
         }
       `}</style>
 
-      {isMatchActive || isMatchFinished || apiData ? (
-        <div className="relative min-h-screen bg-[#020617] text-white">
-          {/* Background Gradients */}
-          <div className="fixed inset-0 pointer-events-none z-0">
-            <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] animate-pulse"></div>
-            <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px]"></div>
-          </div>
+      {(isMatchActive || isMatchFinished) ? (
+        <div className="relative min-h-screen bg-transparent text-white">
+          {/* Main Content */}
           
           <div className="relative z-10">
             <div className="container mx-auto px-4 py-12">
               <div className="max-w-6xl mx-auto">
                 {/* Header Section */}
                 <div className="flex justify-center mb-12">
-                  <div className={`bg-white/5 border backdrop-blur-2xl rounded-full px-10 py-4 flex items-center gap-4 shadow-[0_0_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 ${isMatchFinished ? 'border-green-500/20 bg-green-500/5' : 'border-white/10'}`}>
+                  <div className="bg-[#0a101f]/60 backdrop-blur-xl border border-white/10 rounded-full px-10 py-4 flex items-center gap-4 shadow-2xl">
                     <div className="relative flex items-center justify-center">
                       {isMatchFinished ? (
-                        <>
-                          <div className="absolute w-4 h-4 rounded-full bg-green-500/30 animate-ping"></div>
-                          <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,1)] z-10"></div>
-                        </>
+                        <div className="w-3 h-3 rounded-full bg-green-500 z-10 shadow-[0_0_15px_rgba(34,197,94,0.5)]"></div>
                       ) : isMatchActive ? (
-                        <>
-                          <div className="absolute w-4 h-4 rounded-full bg-red-500/30 animate-ping"></div>
-                          <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,1)] z-10"></div>
-                        </>
+                        <div className="w-3 h-3 rounded-full bg-blue-500 z-10 animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
                       ) : (
                         <div className="w-3 h-3 rounded-full bg-white/30"></div>
                       )}
@@ -849,13 +951,13 @@ export default function MatchDetail() {
                     <span className="text-sm font-black uppercase tracking-[0.4em] text-white flex items-center gap-3">
                       {isMatchFinished ? (
                         <>
-                          <span className="text-green-500">ZAKOŃCZONY</span>
+                          <span className="text-white/60">ZAKOŃCZONY</span>
                           <span className="w-px h-4 bg-white/20 mx-1"></span>
                           WYNIK KOŃCOWY
                         </>
                       ) : isMatchActive ? (
                         <>
-                          <span className="text-red-500 animate-pulse-live">NA ŻYWO</span>
+                          <span className="text-white/60">TRWA</span>
                           <span className="w-px h-4 bg-white/20 mx-1"></span>
                           {apiData?.match.timer || '00:00'} <span className="text-white/30 font-medium">|</span> {apiData?.match.period || 'MECZ TRWA'}
                         </>
@@ -881,7 +983,6 @@ export default function MatchDetail() {
                   {/* Home Team */}
                   <div className="flex flex-col items-center gap-6 w-[35%] group">
                     <div className="relative">
-                      <div className="absolute -inset-10 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       {homeTeam.logo && (
                         <Image
                           src={homeTeam.logo}
@@ -897,19 +998,20 @@ export default function MatchDetail() {
 
                   {/* Score Box */}
                   <div className="relative z-20 shrink-0">
-                    <div className="absolute -inset-6 bg-gradient-to-r from-blue-600/40 to-indigo-600/40 rounded-[60px] blur-3xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
-                    <div className="bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[60px] px-8 md:px-16 py-8 md:py-12 flex flex-col items-center justify-center min-w-[160px] md:min-w-[340px] shadow-2xl relative overflow-hidden ring-1 ring-white/10">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-                      <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-blue-400/60 mb-4 relative z-10">{isMatchFinished ? 'WYNIK KOŃCOWY' : isMatchActive ? 'WYNIK NA ŻYWO' : 'ZAPLANOWANY'}</span>
+                    <div className="bg-[#0a101f]/60 backdrop-blur-xl border border-white/10 rounded-[40px] px-8 md:px-16 py-8 md:py-12 flex flex-col items-center justify-center min-w-[160px] md:min-w-[340px] shadow-2xl relative overflow-hidden">
+                      <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-white/40 mb-4 relative z-10">{isMatchFinished ? 'WYNIK KOŃCOWY' : isMatchActive ? 'WYNIK NA ŻYWO' : 'ZAPLANOWANY'}</span>
                       <div className="text-6xl md:text-9xl font-black tracking-tighter flex items-center gap-4 md:gap-8 tabular-nums relative z-10">
-                        <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{finishedMatchData ? finishedMatchData.homeScore : (apiData ? (calculatedScore?.scoreA ?? apiData.match.scoreA) : match?.homeScore ?? '0')}</span>
-                        <span className="text-white/10">:</span>
-                        <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{finishedMatchData ? finishedMatchData.awayScore : (apiData ? (calculatedScore?.scoreB ?? apiData.match.scoreB) : match?.awayScore ?? '0')}</span>
-                      </div>
-                      <div className="flex gap-2.5 mt-6 relative z-10">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-duration:0.8s]"></div>
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-duration:0.8s] [animation-delay:0.2s]"></div>
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-duration:0.8s] [animation-delay:0.4s]"></div>
+                        {(!isMatchFinished && !isMatchActive) ? (
+                          <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">
+                            {preMatchInfo?.time || formatTime(preMatchInfo?.date || preMatchInfo?.dateTime || match?.date)}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{scoreA}</span>
+                            <span className="text-white/10">:</span>
+                            <span className="drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">{scoreB}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -917,7 +1019,6 @@ export default function MatchDetail() {
                   {/* Away Team */}
                   <div className="flex flex-col items-center gap-6 w-[35%] group">
                     <div className="relative">
-                      <div className="absolute -inset-10 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       {awayTeam.logo && (
                         <Image
                           src={awayTeam.logo}
@@ -936,12 +1037,12 @@ export default function MatchDetail() {
                 <div className="grid grid-cols-2 gap-12 md:gap-32 mb-20 max-w-5xl mx-auto">
                   <div className="flex flex-col gap-3 items-end">
                     {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === homeTeam.id) : apiData?.events?.goals?.filter(g => isHomeTeam(g)) || []).map((goal: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/5 transition-all group cursor-default">
+                      <div key={idx} className="flex items-center gap-4 bg-transparent hover:bg-white/5 px-5 py-3 rounded-2xl border border-white/10 transition-all group cursor-default">
                         <div className="flex flex-col items-end">
                           <span className="text-white text-sm font-black uppercase tracking-wide group-hover:text-blue-400 transition-colors">{goal.playerName || goal.player}</span>
                           <span className="text-white/20 text-[9px] font-black uppercase tracking-widest">GOL</span>
                         </div>
-                        <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
+                        <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
                           {goal.minute != null ? `${goal.minute}'` : ''}
                         </div>
                       </div>
@@ -950,8 +1051,8 @@ export default function MatchDetail() {
 
                   <div className="flex flex-col gap-3 items-start">
                     {(finishedMatchData?.scorers || apiData?.events?.goals) && (finishedMatchData?.scorers ? finishedMatchData.scorers.filter((s: any) => s.teamId === awayTeam.id) : apiData?.events?.goals?.filter(g => isAwayTeam(g)) || []).map((goal: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/5 transition-all group cursor-default">
-                        <div className="w-9 h-9 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
+                      <div key={idx} className="flex items-center gap-4 bg-transparent hover:bg-white/5 px-5 py-3 rounded-2xl border border-white/10 transition-all group cursor-default">
+                        <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-red-400 font-black text-xs shadow-lg group-hover:scale-110 transition-transform">
                           {goal.minute != null ? `${goal.minute}'` : ''}
                         </div>
                         <div className="flex flex-col items-start">
@@ -964,7 +1065,7 @@ export default function MatchDetail() {
                 </div>
 
                 {/* Navigation Tabs */}
-                <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-12 bg-white/5 p-2 rounded-[20px] w-fit mx-auto backdrop-blur-2xl border border-white/10 shadow-2xl">
+                <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-12 bg-[#0a101f]/60 backdrop-blur-xl p-2 rounded-[24px] w-fit mx-auto border border-white/10 shadow-2xl">
                   {[
                     { id: 'relacja', label: 'RELACJA' },
                     { id: 'składy', label: 'SKŁADY' },
@@ -975,7 +1076,7 @@ export default function MatchDetail() {
                       onClick={() => setActiveTab(tab.id as any)}
                       className={`px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 ${
                         activeTab === tab.id 
-                          ? 'bg-blue-600 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] scale-105' 
+                          ? 'bg-blue-600/40 text-white border border-blue-400/50 shadow-[0_0_30px_rgba(37,99,235,0.3)] scale-105' 
                           : 'text-white/40 hover:text-white hover:bg-white/5'
                       }`}
                     >
@@ -987,8 +1088,7 @@ export default function MatchDetail() {
 
               {/* Stats Comparison Card */}
               <div className="max-w-4xl mx-auto mt-12">
-                <div className="bg-white/5 backdrop-blur-2xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent"></div>
+                <div className="bg-[#0a101f]/60 backdrop-blur-xl rounded-[40px] overflow-hidden shadow-2xl border border-white/10 relative">
                   <div className="relative py-14 px-8">
                     <div className="absolute left-12 top-1/2 -translate-y-1/2 opacity-10 hidden md:block">
                       {homeTeam.logo && (
@@ -1018,17 +1118,17 @@ export default function MatchDetail() {
                     
                     <div className="space-y-16 max-w-2xl mx-auto relative z-10">
                       <div className="grid grid-cols-3 gap-8 items-center">
-                        <div className="text-blue-400 text-7xl font-black text-center tabular-nums drop-shadow-[0_0_30px_rgba(96,165,250,0.3)] transition-all hover:scale-110">{homePosition}</div>
+                        <div className="text-blue-400 text-7xl font-black text-center tabular-nums transition-all hover:scale-110 drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">{homePosition}</div>
                         <div className="text-white/40 font-black text-[10px] tracking-[0.4em] text-center uppercase leading-tight">POZYCJA</div>
-                        <div className="text-blue-400 text-7xl font-black text-center tabular-nums drop-shadow-[0_0_30px_rgba(96,165,250,0.3)] transition-all hover:scale-110">{awayPosition}</div>
+                        <div className="text-blue-400 text-7xl font-black text-center tabular-nums transition-all hover:scale-110 drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">{awayPosition}</div>
                       </div>
 
                       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
                       <div className="grid grid-cols-3 gap-8 items-center">
-                        <div className="text-white text-7xl font-black text-center tabular-nums transition-all hover:scale-110">{homePoints}</div>
+                        <div className="text-white text-7xl font-black text-center tabular-nums transition-all hover:scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">{homePoints}</div>
                         <div className="text-white/40 font-black text-[10px] tracking-[0.4em] text-center uppercase leading-tight">PUNKTY</div>
-                        <div className="text-white text-7xl font-black text-center tabular-nums transition-all hover:scale-110">{awayPoints}</div>
+                        <div className="text-white text-7xl font-black text-center tabular-nums transition-all hover:scale-110 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">{awayPoints}</div>
                       </div>
                     </div>
                   </div>
@@ -1037,7 +1137,7 @@ export default function MatchDetail() {
 
                 {activeTab === 'relacja' && (
                   <div className="max-w-5xl mx-auto mt-16">
-                    <div className="bg-white/5 backdrop-blur-2xl rounded-[30px] p-8 border border-white/10 shadow-2xl">
+                    <div className="bg-[#0a101f]/60 backdrop-blur-xl rounded-[30px] p-8 border border-white/10 shadow-2xl">
                       <h3 className="text-blue-400 text-2xl font-black text-center mb-10 tracking-[0.2em] uppercase">RELACJA MECZOWA</h3>
                       {eventsData && (eventsData.goals.length > 0 || eventsData.cards.length > 0 || eventsData.substitutions.length > 0) ? (
                         <div className="space-y-10">
@@ -1093,23 +1193,21 @@ export default function MatchDetail() {
                         const score = goalScores.get(event.original) || {scoreA: currentScoreA, scoreB: currentScoreB};
                         
                         return (
-                          <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-white/5 border border-white/10 backdrop-blur-3xl shadow-2xl group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-transparent to-transparent opacity-50"></div>
+                          <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-transparent border border-white/10 shadow-2xl group">
                             
                             {/* Goal Shimmer Animation */}
                             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent w-1/2 animate-goal-shimmer"></div>
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent w-1/2 animate-goal-shimmer"></div>
                             </div>
 
                             <div className={`relative z-10 flex items-center gap-6 p-6 md:p-8 ${isHomeEvent ? 'flex-row' : 'flex-row-reverse'}`}>
                               {/* Minute & Avatar */}
                               <div className="relative shrink-0 flex items-center gap-6">
-                                <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-black text-xl text-blue-400 shadow-lg relative z-20">
+                                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-xl text-white/60 shadow-lg relative z-20">
                                   {event.minute != null ? `${event.minute}'` : ''}
                                 </div>
                                 <Link href={`/gracz/${encodeURIComponent(event.player)}`} className="relative group/avatar">
-                                  <div className="absolute -inset-2 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover/avatar:opacity-100 transition-opacity"></div>
-                                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-white/10 shadow-2xl bg-black/20 relative z-10 transition-transform group-hover/avatar:scale-105">
+                                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-white/10 shadow-2xl bg-white/5 relative z-10 transition-transform group-hover/avatar:scale-105">
                                     <RobloxAvatar username={event.player} className="w-full h-full object-cover scale-110" />
                                   </div>
                                 </Link>
@@ -1118,15 +1216,15 @@ export default function MatchDetail() {
                               {/* Info */}
                               <div className={`flex-1 flex flex-col gap-2 ${isHomeEvent ? 'items-start' : 'items-end'}`}>
                                 <div className={`flex items-center gap-3 ${isHomeEvent ? 'flex-row' : 'flex-row-reverse'}`}>
-                                  <div className="px-3 py-1 bg-blue-600 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.4)]">
-                                    <span className="text-white font-black text-[10px] uppercase tracking-widest">GOL</span>
+                                  <div className="px-3 py-1 border border-white/10 bg-white/5 rounded-lg">
+                                    <span className="text-white/60 font-black text-[10px] uppercase tracking-widest">GOL</span>
                                   </div>
                                   <div className={`flex items-center gap-2 ${isHomeEvent ? 'flex-row' : 'flex-row-reverse'}`}>
-                                    <img src={teamLogo} alt="" className="w-5 h-5 object-contain" />
+                                    <img src={teamLogo} alt="" className="w-5 h-5 object-contain opacity-60" />
                                     <span className="text-white/40 font-black text-[10px] uppercase tracking-[0.2em]">{scoringTeam.shortName || scoringTeam.name}</span>
                                   </div>
                                 </div>
-                                <h4 className={`text-white text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight group-hover:text-blue-400 transition-colors drop-shadow-2xl ${isHomeEvent ? 'text-left' : 'text-right'}`}>
+                                <h4 className={`text-white text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight group-hover:text-white transition-colors drop-shadow-2xl ${isHomeEvent ? 'text-left' : 'text-right'}`}>
                                   <Link href={`/gracz/${encodeURIComponent(event.player)}`}>
                                     {event.player}
                                   </Link>
@@ -1135,12 +1233,12 @@ export default function MatchDetail() {
 
                               {/* Score Display */}
                               <div className="shrink-0 flex flex-col items-center gap-2">
-                                <div className="bg-white/5 border border-white/10 backdrop-blur-xl px-6 py-4 rounded-3xl shadow-2xl flex flex-col items-center justify-center min-w-[120px]">
-                                  <span className="text-[8px] font-black text-blue-400/60 uppercase tracking-[0.3em] mb-1">WYNIK</span>
+                                <div className="bg-transparent border border-white/10 px-6 py-4 rounded-3xl shadow-2xl flex flex-col items-center justify-center min-w-[120px]">
+                                  <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em] mb-1">WYNIK</span>
                                   <div className="text-3xl md:text-4xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                                    <span className={isHomeEvent ? 'text-blue-400' : 'text-white'}>{score.scoreA}</span>
+                                    <span className="text-white">{score.scoreA}</span>
                                     <span className="text-white/20 mx-1">:</span>
-                                    <span className={!isHomeEvent ? 'text-blue-400' : 'text-white'}>{score.scoreB}</span>
+                                    <span className="text-white">{score.scoreB}</span>
                                   </div>
                                 </div>
                               </div>
@@ -1151,16 +1249,14 @@ export default function MatchDetail() {
 
                       if (event.type === 'goal_cancelled') {
                         return (
-                          <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-red-950/10 border border-red-500/20 backdrop-blur-3xl shadow-2xl group grayscale-[0.3]">
-                            <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 via-transparent to-transparent opacity-50"></div>
-                            
+                          <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-transparent border border-white/10 shadow-2xl group grayscale-[0.3]">
                             <div className={`relative z-10 flex items-center gap-6 p-6 md:p-8 ${isHomeEvent ? 'flex-row' : 'flex-row-reverse'}`}>
                               <div className="relative shrink-0 flex items-center gap-6">
-                                <div className="w-14 h-14 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center font-black text-xl text-red-400 shadow-lg relative z-20">
+                                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-xl text-white/40 shadow-lg relative z-20">
                                   {event.minute != null ? `${event.minute}'` : ''}
                                 </div>
                                 <div className="relative opacity-40">
-                                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-red-500/20 bg-black/40">
+                                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-white/10 bg-white/5">
                                     <RobloxAvatar username={event.player || ""} className="w-full h-full object-cover grayscale" />
                                   </div>
                                   <div className="absolute inset-0 flex items-center justify-center text-4xl">❌</div>
@@ -1169,12 +1265,12 @@ export default function MatchDetail() {
 
                               <div className={`flex-1 flex flex-col gap-2 ${isHomeEvent ? 'items-start' : 'items-end'}`}>
                                 <div className={`flex items-center gap-3 ${isHomeEvent ? 'flex-row' : 'flex-row-reverse'}`}>
-                                  <div className="px-3 py-1 bg-red-600 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.4)]">
-                                    <span className="text-white font-black text-[10px] uppercase tracking-widest">BRAMKA ANULOWANA</span>
+                                  <div className="px-3 py-1 border border-white/10 bg-white/5 rounded-lg">
+                                    <span className="text-white/40 font-black text-[10px] uppercase tracking-widest">BRAMKA ANULOWANA</span>
                                   </div>
                                   <span className="text-white/20 font-black text-[10px] uppercase tracking-[0.2em]">VAR DECISION</span>
                                 </div>
-                                <h4 className={`text-red-500 text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight line-through decoration-4 ${isHomeEvent ? 'text-left' : 'text-right'}`}>
+                                <h4 className={`text-white/40 text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight line-through decoration-4 ${isHomeEvent ? 'text-left' : 'text-right'}`}>
                                   {event.player || "BRAMKA"}
                                 </h4>
                               </div>
@@ -1185,70 +1281,56 @@ export default function MatchDetail() {
 
                     if (event.type === 'substitution') {
                       return (
-                        <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-white/5 border border-white/10 backdrop-blur-3xl p-6 md:p-8 flex items-center gap-6 transition-all hover:bg-white/[0.08] group">
-                          <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-black text-xl text-blue-400 shadow-lg shrink-0">
+                        <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-transparent border border-white/10 p-6 md:p-8 flex items-center gap-6 transition-all hover:bg-white/[0.05] group">
+                          <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-xl text-white/40 shadow-lg shrink-0">
                             {event.minute != null ? `${event.minute}'` : ''}
                           </div>
                           
                           <div className="flex items-center gap-4 flex-1">
                             <div className="relative group/avatar shrink-0">
-                              <div className="absolute -inset-1.5 bg-green-500/20 rounded-full blur-lg opacity-0 group-hover/avatar:opacity-100 transition-opacity"></div>
-                              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 shadow-xl bg-black/20 relative z-10">
+                              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 shadow-xl bg-white/5 relative z-10">
                                 <RobloxAvatar username={event.playerIn} className="w-full h-full object-cover" />
                               </div>
-                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-[#020617] flex items-center justify-center text-white text-[10px] z-20">↑</div>
+                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center text-white text-[10px] z-20">↑</div>
                             </div>
 
                             <div className="flex-1 flex flex-col gap-1">
                               <div className="flex items-center gap-3">
-                                <span className="text-white font-black uppercase text-xl tracking-tight group-hover:text-blue-400 transition-colors">{event.playerIn}</span>
-                                <span className="bg-green-500/20 text-green-400 font-black text-[8px] px-2 py-0.5 rounded border border-green-500/30 uppercase tracking-widest">WCHODZI</span>
+                                <span className="text-white font-black uppercase text-xl tracking-tight group-hover:text-white transition-colors">{event.playerIn}</span>
+                                <span className="text-green-400 font-black text-[8px] px-2 py-0.5 rounded border border-green-500/30 uppercase tracking-widest">WCHODZI</span>
                               </div>
                               <div className="flex items-center gap-3 opacity-30">
                                 <span className="text-white font-bold text-sm">{event.playerOut}</span>
-                                <span className="bg-red-500/20 text-red-400 font-black text-[8px] px-2 py-0.5 rounded border border-red-500/30 uppercase tracking-widest">SCHODZI</span>
+                                <span className="text-red-400 font-black text-[8px] px-2 py-0.5 rounded border border-red-500/30 uppercase tracking-widest">SCHODZI</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="p-3 bg-white/5 rounded-2xl border border-white/10 shrink-0">
-                            <img src={teamLogo} alt="" className="w-8 h-8 object-contain grayscale group-hover:grayscale-0 transition-all" />
+                          <div className="p-3 border border-white/10 rounded-2xl shrink-0">
+                            <img src={teamLogo} alt="" className="w-8 h-8 object-contain grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
                           </div>
                         </div>
                       );
                     }
 
                     return (
-                      <div key={event._id} className={`relative overflow-hidden rounded-[32px] p-6 md:p-8 flex items-center gap-6 transition-all hover:bg-white/[0.08] group border backdrop-blur-3xl ${
-                        event.type === 'yellow' 
-                          ? 'bg-yellow-500/10 border-yellow-500/30' 
-                          : 'bg-red-600/10 border-red-600/30'
-                      }`}>
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shrink-0 border ${
-                          event.type === 'yellow'
-                            ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-500'
-                            : 'bg-red-600/20 border-red-500/30 text-red-400'
-                        }`}>
+                      <div key={event._id} className="relative overflow-hidden rounded-[32px] bg-transparent p-6 md:p-8 flex items-center gap-6 transition-all hover:bg-white/[0.05] group border border-white/10">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shrink-0 border border-white/10 bg-white/5 text-white/40">
                           {event.minute != null ? `${event.minute}'` : ''}
                         </div>
                         
                         <div className="flex items-center gap-4 flex-1">
                           <div className="relative group/avatar shrink-0">
-                            <div className={`absolute -inset-1.5 rounded-full blur-lg opacity-0 group-hover/avatar:opacity-100 transition-opacity ${
-                              event.type === 'yellow' ? 'bg-yellow-500/20' : 'bg-red-500/20'
-                            }`}></div>
-                            <div className={`w-16 h-16 rounded-full overflow-hidden border-2 shadow-xl bg-black/20 relative z-10 ${
-                              event.type === 'yellow' ? 'border-yellow-500/30' : 'border-red-500/30'
-                            }`}>
+                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 shadow-xl bg-white/5 relative z-10">
                               <RobloxAvatar username={event.player} className="w-full h-full object-cover" />
                             </div>
-                            <div className={`absolute -bottom-1 -right-1 w-6 h-8 rounded border-2 border-[#020617] z-20 ${
+                            <div className={`absolute -bottom-1 -right-1 w-6 h-8 rounded border-2 border-black z-20 ${
                               event.type === 'yellow' ? 'bg-yellow-500' : 'bg-red-600'
                             }`}></div>
                           </div>
 
                           <div className="flex-1">
-                            <h4 className="text-white font-black uppercase text-xl tracking-tight group-hover:text-blue-400 transition-colors mb-1">{event.player}</h4>
+                            <h4 className="text-white font-black uppercase text-xl tracking-tight group-hover:text-white transition-colors mb-1">{event.player}</h4>
                             <span className={`text-[9px] font-black uppercase px-3 py-1 rounded border shadow-lg ${
                               event.type === 'yellow' 
                                 ? 'bg-yellow-500 border-yellow-400 text-black' 
@@ -1259,8 +1341,8 @@ export default function MatchDetail() {
                           </div>
                         </div>
 
-                        <div className="p-3 bg-white/5 rounded-2xl border border-white/10 shrink-0">
-                          <img src={teamLogo} alt="" className="w-8 h-8 object-contain grayscale group-hover:grayscale-0 transition-all" />
+                        <div className="p-3 border border-white/10 rounded-2xl shrink-0">
+                          <img src={teamLogo} alt="" className="w-8 h-8 object-contain grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
                         </div>
                       </div>
                     );
@@ -1282,46 +1364,54 @@ export default function MatchDetail() {
                       
                       {/* Home Team Column */}
                       <div className="w-full lg:w-72 xl:w-80 shrink-0 space-y-6 order-2 lg:order-1">
-                        <div className="bg-white/5 backdrop-blur-2xl rounded-[30px] p-6 border border-white/10 shadow-2xl">
+                        <div className="bg-transparent rounded-[30px] p-6 border border-white/10 shadow-2xl">
                           <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shadow-lg">
-                              <img src={homeTeam.logo} alt="" className="w-8 h-8 object-contain" />
+                            <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-lg">
+                              <img src={homeTeam.logo} alt="" className="w-8 h-8 object-contain opacity-60" />
                             </div>
                             <div>
                               <h4 className="text-white font-black uppercase text-lg tracking-tight leading-none">{homeTeam.name}</h4>
-                              <p className="text-blue-400/60 text-[9px] font-black uppercase tracking-[0.2em] mt-1">{apiData?.match.lineupA?.formation || 'N/A'}</p>
+                              <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] mt-1">{apiData?.match.lineupA?.formation || 'N/A'}</p>
                             </div>
                           </div>
 
                           <div className="space-y-4">
-                            <div>
-                              <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 ml-1">WYJŚCIOWA JEDENASTKA</h5>
-                              <div className="space-y-2">
-                                {apiData?.match.lineupA?.starters?.map((p, idx) => (
-                                  <div key={idx} className="flex items-center gap-3 bg-white/[0.03] p-2.5 rounded-xl border border-white/5 hover:bg-white/10 transition-all group">
-                                    <div className="w-7 h-7 rounded-full border border-blue-600/50 overflow-hidden bg-blue-600/10 flex items-center justify-center shrink-0">
-                                      <RobloxAvatar username={p.name} className="w-full h-full object-cover" />
-                                    </div>
-                                    <span className="font-bold text-white/70 text-xs uppercase truncate group-hover:text-white transition-colors">{p.name}</span>
-                                    {p.position && <span className="text-[8px] font-black text-white/10 ml-auto uppercase">{p.position}</span>}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {apiData?.match.lineupA?.bench && apiData.match.lineupA.bench.length > 0 && (
-                              <div className="pt-4 border-t border-white/5">
-                                <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 ml-1">ŁAWKA REZERWOWYCH</h5>
-                                <div className="space-y-2">
-                                  {apiData.match.lineupA.bench.map((p, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 bg-white/[0.01] p-2 rounded-xl border border-white/[0.02] hover:bg-white/5 transition-all group">
-                                      <div className="w-6 h-6 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center shrink-0">
-                                        <RobloxAvatar username={p.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" />
+                            {apiData?.match.lineupA ? (
+                              <>
+                                <div>
+                                  <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 ml-1">WYJŚCIOWA JEDENASTKA</h5>
+                                  <div className="space-y-2">
+                                    {apiData.match.lineupA.starters?.map((p, idx) => (
+                                      <div key={idx} className="flex items-center gap-3 bg-[#0a101f]/40 backdrop-blur-md p-2.5 rounded-xl border border-white/10 hover:bg-white/10 transition-all group">
+                                        <div className="w-7 h-7 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center shrink-0">
+                                          <RobloxAvatar username={p.name} className="w-full h-full object-cover" />
+                                        </div>
+                                        <span className="font-bold text-white/70 text-xs uppercase truncate group-hover:text-white transition-colors">{p.name}</span>
+                                        {p.position && <span className="text-[8px] font-black text-white/10 ml-auto uppercase">{p.position}</span>}
                                       </div>
-                                      <span className="font-medium text-white/40 text-[11px] uppercase truncate group-hover:text-white/70 transition-colors">{p.name}</span>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {apiData.match.lineupA.bench && apiData.match.lineupA.bench.length > 0 && (
+                                  <div className="pt-4 border-t border-white/10">
+                                    <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 ml-1">ŁAWKA REZERWOWYCH</h5>
+                                    <div className="space-y-2">
+                                      {apiData.match.lineupA.bench.map((p, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 bg-[#0a101f]/20 backdrop-blur-md p-2 rounded-xl border border-white/5 hover:bg-white/5 transition-all group">
+                                          <div className="w-6 h-6 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center shrink-0">
+                                            <RobloxAvatar username={p.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" />
+                                          </div>
+                                          <span className="font-medium text-white/40 text-[11px] uppercase truncate group-hover:text-white/70 transition-colors">{p.name}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/5">
+                                <p className="text-white/20 font-black text-[10px] uppercase tracking-widest">Składy niedostępne</p>
                               </div>
                             )}
                           </div>
@@ -1330,65 +1420,53 @@ export default function MatchDetail() {
 
                       {/* Pitch Column */}
                       <div className="w-full lg:flex-1 max-w-5xl order-1 lg:order-2">
-                        <div className="bg-white/5 backdrop-blur-2xl rounded-[30px] p-6 md:p-8 border border-white/10 shadow-2xl relative overflow-hidden h-full">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent"></div>
-                          <h3 className="text-blue-400 text-2xl font-black text-center mb-8 tracking-[0.2em] uppercase relative z-10">BOISKO</h3>
+                        <div className="bg-[#0a101f]/60 backdrop-blur-xl rounded-[30px] p-6 md:p-8 border border-white/10 shadow-2xl relative overflow-hidden h-full">
+                          <h3 className="text-white/60 text-2xl font-black text-center mb-8 tracking-[0.2em] uppercase relative z-10">BOISKO</h3>
                           
-                          <div className="relative aspect-[3/2] w-full rounded-xl overflow-hidden shadow-2xl border-4 border-white/5">
-                            <div className="absolute inset-0 bg-gradient-to-b from-[#1a5d1a] via-[#2d6b2d] to-[#1a5d1a]">
-                              <div className="absolute inset-0" style={{
-                                backgroundImage: `
-                                  repeating-linear-gradient(
-                                    90deg,
-                                    transparent,
-                                    transparent 9%,
-                                    rgba(255,255,255,0.03) 9%,
-                                    rgba(255,255,255,0.03) 10%
-                                  )
-                                `
-                              }}></div>
+                          <div className="relative aspect-[3/2] w-full rounded-xl overflow-hidden shadow-2xl border border-white/10">
+                            <div className="absolute inset-0 bg-[#0a101f]/40">
+                              {/* Field Markings */}
+                              <div className="absolute inset-0 border-2 border-white/10"></div>
+                              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-white/10"></div>
                               
-                              <div className="absolute inset-3 border-2 border-white/40"></div>
-                              <div className="absolute inset-y-3 left-1/2 -translate-x-1/2 w-0.5 bg-white/40"></div>
-                              
-                              {/* Center Circle with Logo */}
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/40 rounded-full flex items-center justify-center overflow-hidden">
+                              {/* Center Circle */}
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/10 rounded-full flex items-center justify-center">
                                 <img 
                                   src="https://i.ibb.co/TB027G07/czarnepff-1.png" 
                                   alt="" 
-                                  className="w-20 h-20 object-contain opacity-20 brightness-0 invert pointer-events-none" 
+                                  className="w-20 h-20 object-contain opacity-10 brightness-0 invert pointer-events-none" 
                                 />
                               </div>
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white/60 rounded-full"></div>
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white/40 rounded-full"></div>
                               
-                              <div className="absolute top-1/2 left-3 -translate-y-1/2 w-16 h-44 border-2 border-white/40 border-l-0"></div>
-                              <div className="absolute top-1/2 left-3 -translate-y-1/2 w-6 h-20 border-2 border-white/40 border-l-0"></div>
+                              <div className="absolute top-1/2 left-3 -translate-y-1/2 w-16 h-44 border-2 border-white/20 border-l-0"></div>
+                              <div className="absolute top-1/2 left-3 -translate-y-1/2 w-6 h-20 border-2 border-white/20 border-l-0"></div>
                               
-                              <div className="absolute top-1/2 right-3 -translate-y-1/2 w-16 h-44 border-2 border-white/40 border-r-0"></div>
-                              <div className="absolute top-1/2 right-3 -translate-y-1/2 w-6 h-20 border-2 border-white/40 border-r-0"></div>
+                              <div className="absolute top-1/2 right-3 -translate-y-1/2 w-16 h-44 border-2 border-white/20 border-r-0"></div>
+                              <div className="absolute top-1/2 right-3 -translate-y-1/2 w-6 h-20 border-2 border-white/20 border-r-0"></div>
                               
-                              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/30 rounded-full"></div>
-                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/30 rounded-full"></div>
+                              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/20 rounded-full"></div>
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 bg-white/20 rounded-full"></div>
                               
-                              <div className="absolute top-1/2 left-[11.5%] -translate-y-1/2 w-1.5 h-1.5 bg-white/40 rounded-full"></div>
-                              <div className="absolute top-1/2 right-[11.5%] -translate-y-1/2 w-1.5 h-1.5 bg-white/40 rounded-full"></div>
+                              <div className="absolute top-1/2 left-[11.5%] -translate-y-1/2 w-1.5 h-1.5 bg-white/20 rounded-full"></div>
+                              <div className="absolute top-1/2 right-[11.5%] -translate-y-1/2 w-1.5 h-1.5 bg-white/20 rounded-full"></div>
                               
                               <svg className="absolute top-3 left-3 w-3 h-3" viewBox="0 0 10 10">
-                                <path d="M 0 10 Q 0 0 10 0" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+                                <path d="M 0 10 Q 0 0 10 0" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5"/>
                               </svg>
                               <svg className="absolute top-3 right-3 w-3 h-3" viewBox="0 0 10 10">
-                                <path d="M 10 10 Q 10 0 0 0" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+                                <path d="M 10 10 Q 10 0 0 0" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5"/>
                               </svg>
                               <svg className="absolute bottom-3 left-3 w-3 h-3" viewBox="0 0 10 10">
-                                <path d="M 0 0 Q 0 10 10 10" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+                                <path d="M 0 0 Q 0 10 10 10" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5"/>
                               </svg>
                               <svg className="absolute bottom-3 right-3 w-3 h-3" viewBox="0 0 10 10">
-                                <path d="M 10 0 Q 10 10 0 10" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+                                <path d="M 10 0 Q 10 10 0 10" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5"/>
                               </svg>
                             </div>
                             
-                            <div className="absolute inset-0 z-10 p-4 md:p-8">
-                              {apiData?.match.lineupA && apiData.match.lineupB && (
+                            <div className="absolute inset-0 z-10 p-4 md:p-8 flex items-center justify-center">
+                              {apiData?.match.lineupA && apiData.match.lineupB ? (
                                 <div className="relative w-full h-full">
                                   {(() => {
                                     const homePositions = calculateSmartPositions(apiData.match.lineupA.starters, 'home');
@@ -1421,6 +1499,10 @@ export default function MatchDetail() {
                                     });
                                   })()}
                                 </div>
+                              ) : (
+                                <div className="text-center bg-black/40 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
+                                  <p className="text-white/40 font-black text-xs uppercase tracking-widest">Składy niedostępne</p>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1429,7 +1511,7 @@ export default function MatchDetail() {
 
                       {/* Away Team Column */}
                       <div className="w-full lg:w-72 xl:w-80 shrink-0 space-y-6 order-3 lg:order-3">
-                        <div className="bg-white/5 backdrop-blur-2xl rounded-[30px] p-6 border border-white/10 shadow-2xl">
+                        <div className="bg-[#0a101f]/60 backdrop-blur-xl rounded-[30px] p-6 border border-white/10 shadow-2xl">
                           <div className="flex items-center gap-4 mb-6 lg:flex-row-reverse">
                             <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center shadow-lg">
                               <img src={awayTeam.logo} alt="" className="w-8 h-8 object-contain" />
@@ -1441,34 +1523,42 @@ export default function MatchDetail() {
                           </div>
 
                           <div className="space-y-4">
-                            <div>
-                              <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 lg:text-right mr-1">WYJŚCIOWA JEDENASTKA</h5>
-                              <div className="space-y-2">
-                                {apiData?.match.lineupB?.starters?.map((p, idx) => (
-                                  <div key={idx} className="flex items-center gap-3 bg-white/[0.03] p-2.5 rounded-xl border border-white/5 hover:bg-white/10 transition-all group flex-row-reverse">
-                                    <div className="w-7 h-7 rounded-full border border-red-600/50 overflow-hidden bg-red-600/10 flex items-center justify-center shrink-0">
-                                      <RobloxAvatar username={p.name} className="w-full h-full object-cover" />
-                                    </div>
-                                    <span className="font-bold text-white/70 text-xs uppercase truncate group-hover:text-white transition-colors text-right">{p.name}</span>
-                                    {p.position && <span className="text-[8px] font-black text-white/10 mr-auto uppercase">{p.position}</span>}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {apiData?.match.lineupB?.bench && apiData.match.lineupB.bench.length > 0 && (
-                              <div className="pt-4 border-t border-white/5">
-                                <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 lg:text-right mr-1">ŁAWKA REZERWOWYCH</h5>
-                                <div className="space-y-2">
-                                  {apiData.match.lineupB.bench.map((p, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 bg-white/[0.01] p-2 rounded-xl border border-white/[0.02] hover:bg-white/5 transition-all group flex-row-reverse">
-                                      <div className="w-6 h-6 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center shrink-0">
-                                        <RobloxAvatar username={p.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" />
+                            {apiData?.match.lineupB ? (
+                              <>
+                                <div>
+                                  <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 lg:text-right mr-1">WYJŚCIOWA JEDENASTKA</h5>
+                                  <div className="space-y-2">
+                                    {apiData.match.lineupB.starters?.map((p, idx) => (
+                                      <div key={idx} className="flex items-center gap-3 bg-[#0a101f]/40 backdrop-blur-md p-2.5 rounded-xl border border-white/10 hover:bg-white/10 transition-all group flex-row-reverse">
+                                        <div className="w-7 h-7 rounded-full border border-red-600/50 overflow-hidden bg-red-600/10 flex items-center justify-center shrink-0">
+                                          <RobloxAvatar username={p.name} className="w-full h-full object-cover" />
+                                        </div>
+                                        <span className="font-bold text-white/70 text-xs uppercase truncate group-hover:text-white transition-colors text-right">{p.name}</span>
+                                        {p.position && <span className="text-[8px] font-black text-white/10 mr-auto uppercase">{p.position}</span>}
                                       </div>
-                                      <span className="font-medium text-white/40 text-[11px] uppercase truncate group-hover:text-white/70 transition-colors text-right">{p.name}</span>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {apiData.match.lineupB.bench && apiData.match.lineupB.bench.length > 0 && (
+                                  <div className="pt-4 border-t border-white/5">
+                                    <h5 className="text-white/30 text-[9px] font-black uppercase tracking-[0.3em] mb-3 lg:text-right mr-1">ŁAWKA REZERWOWYCH</h5>
+                                    <div className="space-y-2">
+                                      {apiData.match.lineupB.bench.map((p, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 bg-[#0a101f]/20 backdrop-blur-md p-2 rounded-xl border border-white/[0.02] hover:bg-white/5 transition-all group flex-row-reverse">
+                                          <div className="w-6 h-6 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center shrink-0">
+                                            <RobloxAvatar username={p.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" />
+                                          </div>
+                                          <span className="font-medium text-white/40 text-[11px] uppercase truncate group-hover:text-white/70 transition-colors text-right">{p.name}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/5">
+                                <p className="text-white/20 font-black text-[10px] uppercase tracking-widest">Składy niedostępne</p>
                               </div>
                             )}
                           </div>
@@ -1481,8 +1571,8 @@ export default function MatchDetail() {
 
                 {activeTab === 'statystyki' && (
                   <div className="max-w-5xl mx-auto mt-16">
-                    <div className="bg-white/5 backdrop-blur-2xl rounded-[30px] p-10 border border-white/10 shadow-2xl relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent"></div>
+                    <div className="bg-[#0a101f]/60 backdrop-blur-xl rounded-[30px] p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent opacity-30"></div>
                       <h3 className="text-blue-400 text-2xl font-black text-center mb-12 tracking-[0.2em] uppercase relative z-10">STATYSTYKI DRUŻYNOWE</h3>
                       {apiData?.match.stats ? (
                         <div className="space-y-8 relative z-10">
@@ -1495,7 +1585,9 @@ export default function MatchDetail() {
                         </div>
                       ) : (
                         <div className="text-center py-12 relative z-10">
-                          <p className="text-white/30 italic">Statystyki zostaną zaktualizowane po rozpoczęciu spotkania</p>
+                          <p className="text-white/30 italic">
+                            {isMatchFinished ? 'Statystyki niedostępne' : 'Statystyki zostaną zaktualizowane po rozpoczęciu spotkania'}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1505,11 +1597,11 @@ export default function MatchDetail() {
             </div>
           </div>
       ) : (
-        <div className="min-h-screen bg-[#020617] text-white">
+        <div className="min-h-screen bg-transparent text-white">
           {/* Main Background with Blue Glow */}
           <div className="fixed inset-0 pointer-events-none z-0">
-            <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[120px] animate-pulse"></div>
-            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]"></div>
+            <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] animate-pulse"></div>
+            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[120px]"></div>
           </div>
           
           <div className="relative z-10 container mx-auto px-4 py-8 md:py-16">
@@ -1517,8 +1609,8 @@ export default function MatchDetail() {
               
               {/* Date Header Pill */}
               <div className="mb-8 md:mb-12 relative">
-                <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full"></div>
-                <div className="relative px-8 md:px-12 py-2 md:py-3 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full flex items-center gap-3 md:gap-5 shadow-2xl ring-1 ring-white/10">
+                <div className="absolute inset-0 bg-blue-500/10 blur-3xl rounded-full"></div>
+                <div className="relative px-8 md:px-12 py-2 md:py-3 bg-[#0a101f]/60 backdrop-blur-xl border border-white/10 rounded-full flex items-center gap-3 md:gap-5 shadow-2xl ring-1 ring-white/10">
                   <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]"></div>
                   <span className="text-white text-[10px] md:text-sm font-black uppercase tracking-[0.4em]">{formatDate(match?.date || preMatchInfo?.date)}</span>
                   <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_#60a5fa]"></div>
@@ -1526,7 +1618,7 @@ export default function MatchDetail() {
               </div>
 
               {/* Match Card */}
-              <div className="w-full bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2rem] md:rounded-[4rem] p-6 md:p-12 relative shadow-2xl">
+              <div className="w-full bg-[#0a101f]/60 backdrop-blur-3xl border border-white/10 rounded-[2rem] md:rounded-[4rem] p-6 md:p-12 relative shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent rounded-[2rem] md:rounded-[4rem]"></div>
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-4 relative z-10">
                   {/* Home Team */}
@@ -1541,7 +1633,7 @@ export default function MatchDetail() {
                     </div>
 
                     <div className="shrink-0 relative order-1 md:order-2">
-                      <div className="absolute -inset-6 md:-inset-10 bg-blue-500/15 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="absolute -inset-6 md:-inset-10 bg-blue-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       {homeTeam.logo && (
                         <Image
                           src={homeTeam.logo}
@@ -1558,7 +1650,7 @@ export default function MatchDetail() {
 
                   {/* Center Box */}
                   <div className="flex flex-col items-center gap-6 px-2 md:px-4 order-first md:order-none w-full md:w-auto self-center">
-                    <div className="bg-black/40 backdrop-blur-2xl px-8 md:px-10 py-8 md:py-12 rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 flex flex-col items-center justify-center min-w-[240px] md:min-w-[280px] shadow-2xl relative group/box ring-1 ring-white/5">
+                    <div className="bg-[#0a101f]/80 backdrop-blur-2xl px-8 md:px-10 py-8 md:py-12 rounded-[2.5rem] md:rounded-[3.5rem] border border-white/10 flex flex-col items-center justify-center min-w-[240px] md:min-w-[280px] shadow-2xl relative group/box ring-1 ring-white/5">
                       <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover/box:opacity-100 transition-opacity rounded-[2.5rem] md:rounded-[3.5rem]"></div>
                       
                       <div className="flex flex-col items-center relative z-10 text-center">
@@ -1602,7 +1694,7 @@ export default function MatchDetail() {
                   {/* Away Team */}
                   <div className="flex items-center gap-4 md:gap-6 lg:gap-10 flex-1 justify-center md:justify-start group w-full">
                     <div className="shrink-0 relative">
-                      <div className="absolute -inset-6 md:-inset-10 bg-blue-500/15 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="absolute -inset-6 md:-inset-10 bg-blue-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       {awayTeam.logo && (
                         <Image
                           src={awayTeam.logo}
@@ -1629,7 +1721,7 @@ export default function MatchDetail() {
                 <div className="flex items-center justify-between mt-12 md:mt-16 pt-8 md:pt-10 border-t border-white/10 relative z-10 w-full px-2 md:px-12">
                   <div className="flex items-center gap-4 group cursor-pointer opacity-20 hover:opacity-100 transition-all duration-500">
                     <div className="relative">
-                      <div className="absolute -inset-2 bg-blue-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="absolute -inset-2 bg-blue-500/10 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       {homeTeam.logo && (
                         <Image src={homeTeam.logo} alt="" width={40} height={40} className="relative z-10 grayscale brightness-200 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-500" />
                       )}
@@ -1675,7 +1767,7 @@ export default function MatchDetail() {
                       <span className="text-white/40 text-[8px] font-bold uppercase tracking-widest">GOŚĆ</span>
                     </div>
                     <div className="relative">
-                      <div className="absolute -inset-2 bg-blue-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="absolute -inset-2 bg-blue-500/10 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       {awayTeam.logo && (
                         <Image src={awayTeam.logo} alt="" width={40} height={40} className="relative z-10 grayscale brightness-200 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-500" />
                       )}
@@ -1689,7 +1781,7 @@ export default function MatchDetail() {
                     <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
                       {/* Reuse the existing lineups logic but adapted for this layout if needed, 
                           or just show a message if no data */}
-                      <div className="bg-white/5 backdrop-blur-2xl rounded-[30px] p-8 border border-white/10 w-full max-w-4xl mx-auto text-center">
+                      <div className="bg-[#0a101f]/60 backdrop-blur-xl rounded-[30px] p-8 border border-white/10 w-full max-w-4xl mx-auto text-center">
                         <p className="text-white/30 italic">Składy zostaną ogłoszone przed rozpoczęciem meczu</p>
                       </div>
                     </div>

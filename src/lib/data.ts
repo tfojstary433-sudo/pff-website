@@ -290,9 +290,19 @@ export const teams: Team[] = [
     id: 'WPL',
     name: 'Wisła Płock',
     shortName: 'Wisła Płock',
-    logo: 'https://i.ibb.co/4gC8q4dS/obraz-2026-01-29-162036024.png',
+    logo: 'https://i.ibb.co/SX6LkvnR/obraz-2026-02-01-105518416.png',
     color: '#1e40af',
     stadium: 'Stadion im. Kazimierza Górskiego'
+  },
+  {
+    id: 'SED',
+    name: 'Kolegium Sędziowskie',
+    shortName: 'Sędziowie',
+    logo: 'https://i.ibb.co/5hYr57Mr/obraz-2026-02-01-142942311.png',
+    color: '#ef4444',
+    founded: '01.01.2026',
+    president: 'Zarząd PFF',
+    stadium: 'PFF Arena'
   },
 ];
 
@@ -536,7 +546,54 @@ export const newsArticles = [
     category: 'EKSTRAKLASA',
     title: 'Pierwszy sezon Ekstraklasy na Polskiej Federacji Futbolu za niedługo startuje!',
     image: 'https://i.ibb.co/SXDCV1tC/PFFGRAFIKA.png',
+    isVertical: true,
     description: 'Już wkrótce rozpoczynamy historyczny, pierwszy sezon rozgrywek Ekstraklasy pod szyldem Polskiej Federacji Futbolu. Przygotujcie się na niesamowite emocje!',
+    content: `Pierwszy sezon Ekstraklasy PFF w Roblox – wszystko dopiero się zaczyna. Pierwszy sezon Ekstraklasy Polskiej Federacji Futbolu w Roblox to start zupełnie nowego projektu, który ma na celu stworzenie miejsca dla wszystkich fanów piłki nożnej w wirtualnym świecie. To moment, w którym liga dopiero nabiera kształtów, a każdy zawodnik ma szansę zapisać się w jej historii od samego początku. Nie ma jeszcze gwiazd, legend ani faworytów — są za to pasja, rywalizacja i otwarte drzwi dla nowych graczy, którzy chcą spróbować swoich sił na boisku.
+
+Ekstraklasa PFF w Roblox wystartowała jako pierwsza oficjalna liga organizowana przez Polską Federację Futbolu. Sezon inauguracyjny to etap budowania zasad, struktur i drużyn, które w przyszłości stworzą silną i rozpoznawalną ligę. Rozgrywki są otwarte na nowych zawodników, a każdy mecz to okazja do nauki, rozwoju umiejętności i dobrej zabawy. Liczy się zaangażowanie, współpraca zespołowa i chęć gry — nie doświadczenie.
+
+Pierwszy sezon to czas eksperymentów i wspólnego tworzenia ligi. Kluby dopiero się formują, a zawodnicy mają realny wpływ na atmosferę, styl gry i przyszłość rozgrywek. Każdy gol, każda asysta i każdy mecz budują historię Ekstraklasy PFF od samych podstaw. Jeśli szukasz miejsca, gdzie możesz pograć w piłkę w Roblox, poznać nowych ludzi i stać się częścią rozwijającej się społeczności — Ekstraklasa PFF to idealne miejsce na start. To nie jest liga gotowa — to liga, którą tworzymy razem.`,
+    date: '10.01.2026, 17:15',
+    author: 'Redakcja PFF',
+    relatedTeamIds: []
+  },
+  {
+    id: 2,
+    category: 'TRANSFERY',
+    title: 'Giełda transferowa płonie – największe ruchy przedsezonowe',
+    image: 'https://i.ibb.co/r2KwDw8h/obraz-2026-01-05-231417131.png',
+    description: 'Kluby Ekstraklasy PFF nie próżnują. Zobacz, kto zmienił barwy klubowe w ostatnim tygodniu i jakie wzmocnienia planują najwięksi faworyci.',
+    content: `Okno transferowe w Ekstraklasie PFF dostarcza nam codziennie nowych emocji. Największe kluby walczą o najlepszych zawodników na rynku, a kwoty kontraktów rosną z godziny na godzinę. Zespół Jagiellonii Białystok ogłosił pozyskanie trzech kluczowych graczy formacji ofensywnej, co stawia ich w roli jednego z głównych kandydatów do tytułu.
+
+Z kolei Wisła Kraków stawia na młode talenty, podpisując kontrakty z obiecującymi zawodnikami z niższych lig. Dyrektor sportowy klubu podkreśla, że budują zespół z perspektywą na lata, a nie tylko na jeden sezon. Eksperci przewidują, że walka o podium będzie niezwykle zacięta, a o sukcesie mogą zadecydować detale wypracowane podczas zimowego okresu przygotowawczego.`,
+    date: '12.01.2026, 09:30',
+    author: 'Mateusz Sportowy',
+    relatedTeamIds: ['JAG', 'WIS']
+  },
+  {
+    id: 3,
+    category: 'WYWIAD',
+    title: 'Prezes PFF: "Naszym celem jest stworzenie najbardziej profesjonalnej ligi w Roblox"',
+    image: 'https://i.ibb.co/TB027G07/czarnepff-1.png',
+    description: 'Ekskluzywny wywiad z szefem Polskiej Federacji Futbolu o planach na rozwój, nowych systemach meczowych i współpracy ze społecznością.',
+    content: `W szczerej rozmowie z naszą redakcją, Prezes PFF opowiedział o wizji rozwoju federacji na najbliższe lata. "Chcemy, aby PFF było kojarzone z jakością i profesjonalizmem. Wprowadzamy nowe systemy anty-cheatowe, szkolimy sędziów i dbamy o oprawę graficzną każdego spotkania" – mówi Prezes.
+
+Kluczowym elementem strategii jest zaangażowanie społeczności. PFF planuje cykliczne spotkania z kapitanami drużyn oraz otwarte głosowania nad zmianami w regulaminie. "To liga dla graczy i chcemy, aby to oni mieli decydujący głos w sprawach, które ich dotyczą" – dodaje. Już niedługo możemy spodziewać się prezentacji nowego systemu stadionów, który ma zrewolucjonizować doświadczenie z gry.`,
+    date: '15.01.2026, 20:00',
+    author: 'Adrian Wywiad',
+    relatedTeamIds: []
+  },
+  {
+    id: 4,
+    category: 'PORADNIK',
+    title: 'Jak zostać zawodnikiem PFF? Przewodnik dla początkujących',
+    image: 'https://i.ibb.co/SXDCV1tC/PFFGRAFIKA.png',
+    description: 'Chciałbyś spróbować swoich sił w profesjonalnych rozgrywkach? Dowiedz się, jak założyć profil, znaleźć klub i przejść testy sprawnościowe.',
+    content: `Dołączenie do Polskiej Federacji Futbolu jest prostsze niż myślisz, ale wymaga zaangażowania. Pierwszym krokiem jest dołączenie do naszego oficjalnego serwera Discord, gdzie publikowane są ogłoszenia o testach (tryoutach) w poszczególnych klubach.
+
+Warto zadbać o swoją reputację na boisku i poza nim. Kluby szukają nie tylko umiejętności technicznych, ale także dyscypliny i umiejętności gry zespołowej. W naszym poradniku znajdziesz listę najczęściej popełnianych błędów przez nowych graczy oraz wskazówki, jak przygotować się do pierwszego oficjalnego meczu. Pamiętaj, że każdy z obecnych mistrzów zaczynał dokładnie tak samo jak Ty.`,
+    date: '18.01.2026, 14:20',
+    author: 'Trener Tomek',
     relatedTeamIds: []
   }
 ];

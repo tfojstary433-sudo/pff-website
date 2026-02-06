@@ -1,4 +1,4 @@
-export const REPLIT_API_BASE_URL = 'https://2cc8fdff-58f5-4de4-ba18-23c3c389e63d-00-10zd3s5b89sgn.janeway.replit.dev';
+export const REPLIT_API_BASE_URL = 'https://88602c77-02c7-4b06-8b56-454baca5488c-00-38bejx2g3vlpx.picard.replit.dev';
 export const FIREBASE_BASE_URL = "https://wlpn-roblox-default-rtdb.europe-west1.firebasedatabase.app";
 
 export const API_ENDPOINTS = {
@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
   EXTERNAL_STATS: `${REPLIT_API_BASE_URL}/api/external/stats`,
   EXTERNAL_TABLE: `${REPLIT_API_BASE_URL}/api/external/table`,
   PLAYERS_HISTORY: `${REPLIT_API_BASE_URL}/players-history.json`,
+  MATCHES: `${REPLIT_API_BASE_URL}/api/matches`,
 };
 
 export const POSITION_MAPPING: Record<string, string> = {

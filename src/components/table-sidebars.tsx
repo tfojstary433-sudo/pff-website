@@ -57,7 +57,7 @@ export const RecentResultsSidebar = memo(function RecentResultsSidebar() {
       </h3>
       {finishedMatchesArray.length > 0 ? (
         finishedMatchesArray.map((item: any) => (
-          <div key={item.id} className="bg-black/40 border border-white/10 rounded-xl p-3 backdrop-blur-sm">
+          <div key={item.id} className="bg-transparent border border-white/5 rounded-xl p-3 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col items-center gap-1 flex-1">
                 <Image src={item.match.homeTeam.logo} alt="" width={24} height={24} className="object-contain" />
@@ -100,7 +100,7 @@ export const SponsorsSidebar = memo(function SponsorsSidebar() {
       </h3>
       <div className="grid grid-cols-1 gap-4">
         {sponsors.map((sponsor, index) => (
-          <div key={index} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-center hover:bg-white/10 transition-all group">
+          <div key={index} className="bg-transparent border border-white/5 rounded-xl p-4 flex items-center justify-center hover:bg-white/5 transition-all group">
             <Image 
               src={sponsor.src} 
               alt={sponsor.alt} 

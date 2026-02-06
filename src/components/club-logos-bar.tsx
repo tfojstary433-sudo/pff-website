@@ -9,7 +9,7 @@ export function ClubLogosBar() {
   const duplicatedTeams = [...teams, ...teams, ...teams, ...teams];
 
   return (
-    <div className="w-full py-8 bg-black/60 backdrop-blur-md border-y border-white/5 shadow-2xl overflow-hidden group">
+    <div className="w-full py-8 bg-black/80 backdrop-blur-xl border-y border-white/5 overflow-hidden group">
       <div className="flex items-center gap-12 md:gap-20 flex-nowrap min-w-max animate-scroll hover:[animation-play-state:paused] cursor-pointer">
         {duplicatedTeams.map((team, index) => (
           <Link 
